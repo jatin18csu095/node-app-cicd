@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/jatin18scu095/node-app-cicd.git'
+                git branch: 'main', url: 'https://github.com/jatin18csu095/node-app-cicd.git'
             }
         }
 
