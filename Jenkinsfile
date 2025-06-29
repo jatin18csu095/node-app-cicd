@@ -23,7 +23,7 @@ pipeline {
         stage('Code Analysis using SonarQube') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner -Dsonar.projectKey=node-app -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.login=$SONAR_TOKEN'
+                    sh 'sonar-scanner'
                 }
             }
         }
