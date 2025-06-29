@@ -16,13 +16,21 @@ pipeline {
             }
         }
 
-        stage('Code Analysis using SonarQube') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner'
-                }
-            }
-        }
+       stage('Code Analysis using SonarQube') {
+           steps {
+               withSonarQubeEnv('SonarQube') {
+                   withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
+                       sh '''
+                           sonar-scanner \
+                             -Dsonar.projectKey=node-app \
+                             -Dsonar.sources=. \
+                             -Dsonar.host.url=http://sonarqube:9000 \
+                             -Dsonar.login=$SONAR_TOKEN
+                       '''
+                   }
+               }
+           }
+       }
 
         stage('Build Docker Image') {
             steps {
