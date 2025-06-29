@@ -22,9 +22,11 @@ pipeline {
 
         stage('Code Analysis using SonarQube') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner'
-                }
+               withSonarQubeEnv('SonarQube') {
+          withEnv(["PATH+SONAR=${tool 'SonarQube'}/bin"]) {
+          sh 'sonar-scanner -X'
+          }
+        }
             }
         }
 
