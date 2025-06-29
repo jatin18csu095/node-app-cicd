@@ -55,7 +55,7 @@ pipeline {
                     sh '''
                         rm -rf node-k8s-deploy
                         git clone https://$GIT_USER:$GIT_TOKEN@github.com/jatin18csu095/node-app-cicd.git
-                        cd node-k8s-deploy/deployment
+                        cd node-app-cicd/deployment
                         sed -i 's|jatinthakrann/node-app:.*|$DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG|' deployment.yaml
                         git config user.email "youremail@example.com"
                         git config user.name "$GIT_USER"
