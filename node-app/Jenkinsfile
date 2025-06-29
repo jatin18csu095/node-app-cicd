@@ -19,16 +19,15 @@ pipeline {
                git branch: 'main', url: 'https://github.com/jatin18csu095/node-app-cicd.git'
             }
         }
+    }
 
         stage('Code Analysis using SonarQube') {
             steps {
                withSonarQubeEnv('SonarQube') {
-          withEnv(["PATH+SONAR=${tool 'SonarQube'}/bin"]) {
-                       sh 'sonar-scanner -Dsonar.login=$SONAR_TOKEN'
+                sh 'sonar-scanner'
           }
                }
             }
-        }
 
         stage('Build Docker Image') {
             steps {
@@ -75,5 +74,4 @@ pipeline {
                 }
             }
         }
-    }
 }
