@@ -53,7 +53,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-push-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                     sh '''
-                        rm -rf node-k8s-deploy
+                        rm -rf node-app-cicd
                         git clone https://$GIT_USER:$GIT_TOKEN@github.com/jatin18csu095/node-app-cicd.git
                         cd node-app-cicd/deployment
                         sed -i 's|jatinthakrann/node-app:.*|$DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG|' deployment.yaml
