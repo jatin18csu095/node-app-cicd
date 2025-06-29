@@ -34,7 +34,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG .'
+                sh 'docker build -t $DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG ./node-app'
             }
         }
 
