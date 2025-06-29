@@ -16,7 +16,7 @@ pipeline {
     stages {
         stage('Checkout Application Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/jatin18scu095/node-app-cicd.git'
+                git credentialsId: 'github', url: 'https://github.com/jatin18scu095/node-app-cicd.git'
             }
         }
 
