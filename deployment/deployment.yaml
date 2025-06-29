@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: node-app
-        image: jatinthakrann/node-app:latest
+        image: $DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG
         ports:
         - containerPort: 3000
         
