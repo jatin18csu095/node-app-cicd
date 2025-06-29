@@ -24,7 +24,7 @@ pipeline {
             steps {
                withSonarQubeEnv('SonarQube') {
           withEnv(["PATH+SONAR=${tool 'SonarQube'}/bin"]) {
-                        sh 'sonar-scanner'
+                       sh 'sonar-scanner -Dsonar.login=$SONAR_TOKEN'
           }
                }
             }
