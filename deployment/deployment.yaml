@@ -17,3 +17,4 @@ spec:
         image: node-app:latest
         ports:
         - containerPort: 3000
+        
