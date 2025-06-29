@@ -1,49 +1,55 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_IMAGE = 'jatinthakrann/node-app-cicd'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-creds' // Jenkins credentials ID
+        SONAR_TOKEN = credentials('sonar-token-id')           // You must set this in Jenkins credentials
+        DOCKER_HUB_USER = 'jatinthakrann'                     // Your Docker Hub username
+        DOCKER_IMAGE = 'node-app'
+        REGISTRY = 'docker.io'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
-
     stages {
-        stage('Checkout Code') {
+        stage('Checkout Application Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/jatin18csu095/node-app-cicd.git'
+                git branch: 'main', url: 'https://github.com/jatin18scu095/node-app-cicd.git'
             }
         }
-
-        stage('Code Analysis') {
+        stage('Code Analysis using SonarQube') {
             steps {
-                // Add SonarQube analysis here if configured
-
-                echo 'SonarQube analysis would run here'
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner -Dsonar.projectKey=node-app -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.login=$SONAR_TOKEN'
+                }
             }
         }
-
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                sh 'docker build -t $DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG .'
+            }
+        }
+        stage('Push into Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')]) {
+                    sh '''
+           echo "$DOCKER_PWD" | docker login -u "$DOCKER_USER" --password-stdin
+           docker push $DOCKER_HUB_USER/$DOCKER_IMAGE:$IMAGE_TAG
+         '''
                 }
             }
         }
-
-        stage('Push to Docker Hub') {
+        stage('Deploy to Kubernetes via ArgoCD') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-                            docker push $DOCKER_IMAGE
-
-                        """
-                    }
-                }
+        //         withCredentials([usernamePassword(credentialsId: 'github-push-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+        //             sh '''
+        //    rm -rf node-k8s-deploy
+        //    git clone https://$GIT_USER:$GIT_TOKEN@github.com/jatin18scu095/node-k8s-deploy.git
+        //    cd node-k8s-deploy/deployment
+        //    sed -i 's|jatinthakrann/node-app:.*|jatinthakrann/node-app:$IMAGE_TAG|' deployment.yaml
+        //    git config user.email "youremail@example.com"
+        //    git config user.name "$GIT_USER"
+        //    git commit -am "Updated image tag to $IMAGE_TAG"
+        //    git push https://$GIT_USER:$GIT_TOKEN@github.com/jatin18scu095/node-k8s-deploy.git
+        //  '''
+        //         }
             }
         }
     }
 }
-
