@@ -1,12 +1,6 @@
-# (optional) create venv
-# python -m venv .venv && .venv\Scripts\activate   # Windows
-# source .venv/bin/activate                         # macOS/Linux
-
-# If you want LLM prompts via wrapper, install requests:
-pip install requests
-
-# Generate Markdown:
-python docstring_api_docgen.py -i sample_module.py -o api_docs.md
-
-# Or simple HTML:
-python docstring_api_docgen.py -i sample_module.py -o api_docs.html --html
+Approach: Parsed the Python file with ast to extract function names, signatures, and docstrings.
+	•	Multi-step prompting:
+	1.	“Transform docstring into user-friendly API entry (Markdown).”
+	2.	“Provide a best-practices docstring checklist for consistency.”
+(via wrapper API if configured; otherwise local fallback).
+	•	Output: Compiles all entries + checklists into Markdown (or simple HTML).
