@@ -1,34 +1,12 @@
-def add(a: int, b: int) -> int:
-    """
-    Return the sum of two integers.
+# (optional) create venv
+# python -m venv .venv && .venv\Scripts\activate   # Windows
+# source .venv/bin/activate                         # macOS/Linux
 
-    Args:
-        a (int): first addend
-        b (int): second addend
+# If you want LLM prompts via wrapper, install requests:
+pip install requests
 
-    Returns:
-        int: the sum of a and b
+# Generate Markdown:
+python docstring_api_docgen.py -i sample_module.py -o api_docs.md
 
-    Examples:
-        >>> add(2, 3)
-        5
-    """
-    return a + b
-
-
-def divide(a: float, b: float) -> float:
-    """
-    Divide a by b.
-
-    Notes:
-        This function does not handle ZeroDivisionError internally.
-
-    Raises:
-        ZeroDivisionError: if b == 0
-    """
-    return a / b
-
-
-def slugify(text: str) -> str:
-    """Convert text to a simple slug. Lowercase and replace spaces with hyphens."""
-    return "-".join(text.strip().lower().split())
+# Or simple HTML:
+python docstring_api_docgen.py -i sample_module.py -o api_docs.html --html
