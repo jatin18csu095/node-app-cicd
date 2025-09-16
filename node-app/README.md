@@ -1,62 +1,61 @@
-# --- Mini HashBot (core RAG logic) ---
-# Load PDFs -> chunk -> TF-IDF -> retrieve -> answer or "I don't have this information."
+import os
+import openai
+import argparse
+from PyPDF2 import PdfReader
 
-import os, re
-from typing import List, Tuple
-import numpy as np
-from pypdf import PdfReader
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import linear_kernel
+# Set your OpenAI API Key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def read_pdf(path: str) -> List[Tuple[int, str]]:
-    out = []
-    r = PdfReader(path)
-    for i, p in enumerate(r.pages, start=1):
-        t = (p.extract_text() or "")
-        t = re.sub(r"[ \t]+", " ", t)
-        t = re.sub(r"\n{2,}", "\n", t).strip()
-        out.append((i, t))
-    return out
+def load_pdf(file_path):
+    """Extracts text from a PDF file"""
+    reader = PdfReader(file_path)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
+    return text
 
-def chunk_text(text: str, size=900, overlap=120) -> List[str]:
-    chunks, start = [], 0
-    while start < len(text):
-        end = start + size
-        chunks.append(text[start:end])
-        start = max(0, end - overlap)
-    return [c.strip() for c in chunks if c.strip()]
+def ask_question(question, context):
+    """Uses OpenAI to answer based on given context"""
+    prompt = f"""
+    You are a helpful assistant. Use the following context from two documents
+    to answer the question in a clear Q&A format.
 
-def load_chunks(folder: str) -> Tuple[List[str], List[Tuple[str,int]]]:
-    """Return (texts, meta[source,page]) from all PDFs in folder."""
-    texts, meta = [], []
-    for name in os.listdir(folder):
-        if name.lower().endswith(".pdf"):
-            path = os.path.join(folder, name)
-            for page, txt in read_pdf(path):
-                for ch in chunk_text(txt):
-                    texts.append(ch); meta.append((name, page))
-    return texts, meta
+    Context:
+    {context}
 
-def build_index(texts: List[str]):
-    vec = TfidfVectorizer(ngram_range=(1,2), min_df=1, stop_words="english")
-    mat = vec.fit_transform(texts)
-    return vec, mat
+    Question:
+    {question}
 
-def answer(query: str, vec, mat, texts: List[str], meta: List[Tuple[str,int]], min_score=0.15) -> str:
-    qv = vec.transform([query])
-    sims = linear_kernel(qv, mat).ravel()
-    i = int(np.argmax(sims)); score = float(sims[i])
-    if score < min_score:
-        return "I don't have this information."
-    snippet = texts[i][:600].strip()
-    src, pg = meta[i]
-    return f"{snippet}\n\n(Source: {src}, p.{pg})"
+    Answer:
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=400,
+        temperature=0.2
+    )
+    return response["choices"][0]["message"]["content"].strip()
 
-# --- Example usage (replace 'docs' with your folder of PDFs) ---
 if __name__ == "__main__":
-    folder = "docs"  # put your policy PDFs here
-    texts, meta = load_chunks(folder)
-    vec, mat = build_index(texts)
-    q = "How many optional leaves are granted to a Hasher?"
-    print("\n=== Answer ===")
-    print(answer(q, vec, mat, texts, meta))
+    parser = argparse.ArgumentParser(description="Q&A over Document1 & Document2")
+    parser.add_argument("--doc1", type=str, required=True, help="Path to Document1")
+    parser.add_argument("--doc2", type=str, required=True, help="Path to Document2")
+    args = parser.parse_args()
+
+    # Load documents
+    doc1_text = load_pdf(args.doc1)
+    doc2_text = load_pdf(args.doc2)
+
+    combined_context = f"Document 1:\n{doc1_text}\n\nDocument 2:\n{doc2_text}"
+
+    questions = [
+        "How does the message structure for 'List of Participants by Discipline' in Cycling BMX Freestyle (Document 1) differ when applied to Cycling BMX Racing as described in Document 2?",
+        "In Document 2, the Event Unit Start List and Results require certain triggers for BMX Racing. How would these triggers apply if adapted for BMX Freestyle as outlined in Document 1?",
+        "How does the Event Final Ranking message in BMX Racing (Document 2) influence the format and data requirements for a similar message in BMX Freestyle (Document 1)?",
+        "What are the specific ways the 'Applicable Messages' section for BMX Racing (Document 2) alters the permitted use of the Cycling BMX Freestyle Data Dictionary (Document 1)?",
+        "How does the implementation of the 'ExtendedInfo' types in BMX Racing (Document 2) affect the development of BMX Freestyle standards based on guidelines in Document 1?"
+    ]
+
+    for i, q in enumerate(questions, 1):
+        print(f"\nQ{i}: {q}")
+        print("Answer:", ask_question(q, combined_context))
