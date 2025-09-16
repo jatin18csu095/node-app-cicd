@@ -1,51 +1,61 @@
-import os
-import argparse
-from PyPDF2 import PdfReader
 from openai import OpenAI
 
-# 🔑 Directly paste your API key here
-API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-client = OpenAI(api_key=API_KEY)
+# 🔑 Add your API key here
+client = OpenAI(api_key="your_api_key_here")
 
-def load_pdf(file_path):
-    """Extracts text from a PDF file."""
-    reader = PdfReader(file_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
-    return text
 
-def ask_question(doc1_text, doc2_text, question):
-    """Ask OpenAI a question using contents of Document1 and Document2."""
-    context = f"""
+def read_document(path):
+    """Reads text content from a file safely."""
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read()
+
+
+def ask_openai(question, doc1, doc2):
+    """Send question + docs to OpenAI and get Q&A style response."""
+    prompt = f"""
+    You are an expert in Olympic Data Feed standards.
+    Below are two documents: Document 1 (Cycling BMX Freestyle) and Document 2 (Cycling BMX Racing).
+    Based on their content, answer the following question in detail and in Q&A format.
+
     Document 1:
-    {doc1_text[:2000]}  # limiting size for demo
+    {doc1[:1000]}
 
     Document 2:
-    {doc2_text[:2000]}
+    {doc2[:1000]}
 
     Question: {question}
+    Answer:
     """
+
     response = client.chat.completions.create(
-        model="gpt-4o-mini",   # or "gpt-4o" if enabled
-        messages=[
-            {"role": "system", "content": "You are an assistant that answers questions based on provided documents."},
-            {"role": "user", "content": context},
-        ],
-        temperature=0.2,
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=700,
+        temperature=0.2
     )
-    return response.choices[0].message.content
+
+    return response.choices[0].message.content.strip()
+
+
+def main():
+    # Load documents (make sure these files exist in the same folder)
+    doc1 = read_document("Document1.txt")
+    doc2 = read_document("Document2.txt")
+
+    # Assignment questions
+    questions = [
+        "How does the message structure for 'List of Participants by Discipline' in Cycling BMX Freestyle (Document 1) differ when applied to Cycling BMX Racing as described in Document 2?",
+        "In Document 2, the Event Unit Start List and Results require certain triggers for BMX Racing. How would these triggers apply if adapted for BMX Freestyle as outlined in Document 1?",
+        "How does the Event Final Ranking message in BMX Racing (Document 2) influence the format and data requirements for a similar message in BMX Freestyle (Document 1)?",
+        "What are the specific ways the 'Applicable Messages' section for BMX Racing (Document 2) alters the permitted use of the Cycling BMX Freestyle Data Dictionary (Document 1)?",
+        "How does the implementation of the 'ExtendedInfo' types in BMX Racing (Document 2) affect the development of BMX Freestyle standards based on guidelines in Document 1?"
+    ]
+
+    print("\n=== Q&A Output ===\n")
+    for idx, q in enumerate(questions, 1):
+        answer = ask_openai(q, doc1, doc2)
+        print(f"Q{idx}: {q}\nA{idx}: {answer}\n{'-'*60}\n")
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="QnA over two documents using OpenAI API")
-    parser.add_argument("--doc1", required=True, help="Path to Document1 PDF")
-    parser.add_argument("--doc2", required=True, help="Path to Document2 PDF")
-    parser.add_argument("-q", "--question", required=True, help="Question to ask")
-    args = parser.parse_args()
-
-    doc1_text = load_pdf(args.doc1)
-    doc2_text = load_pdf(args.doc2)
-
-    answer = ask_question(doc1_text, doc2_text, args.question)
-    print("\n=== Answer ===\n")
-    print(answer)
+    main()
