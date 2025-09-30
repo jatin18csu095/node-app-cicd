@@ -1,45 +1,12 @@
-1. Rehost (Lift and Shift)
-
-My understanding:
-Rehosting means moving applications “as-is” from on-premises to the cloud without making any code changes. The main focus here is speed. Tools like AWS Application Migration Service (MGN) are used to replicate servers into AWS.
-
-Where it is useful:
-	•	When the priority is to exit a data center quickly.
-	•	When the application works fine as it is and does not immediately need optimization.
-
-Benefits I noted:
-	•	Fastest migration option.
-	•	Minimal risk since nothing changes in the application.
-	•	Low effort required.
+AWS MGN helps to lift-and-shift servers from on-premises (or other clouds) into AWS by continuously replicating them into a staging area. Once ready, we can launch test instances and finally perform a cutover with minimal downtime. For demo purposes, I simulated an on-prem server using an EC2 instance and migrated it to AWS using MGN.
 
 ⸻
 
-2. Replatform (Lift, Tinker, and Shift)
-
-My understanding:
-Replatforming involves making small adjustments to an application during migration to take advantage of managed cloud services. For example, instead of hosting a database on EC2, we can move it to Amazon RDS. Or instead of running applications directly on EC2, we can deploy them on Elastic Beanstalk or ECS Fargate.
-
-Where it is useful:
-	•	When we want to reduce operational overhead like patching, scaling, and backups.
-	•	When we want a balance between quick migration and some optimization.
-
-Benefits I noted:
-	•	Removes a lot of management work.
-	•	Provides better scalability and availability.
-	•	Still requires minimal changes in application code.
-
-⸻
-
-3. Refactor (Re-architect for Cloud)
-
-My understanding:
-Refactoring is about re-architecting or redesigning the application to make full use of cloud-native features. For example, breaking a monolithic app into microservices, moving some functions into AWS Lambda, or redesigning storage to use S3 + CloudFront. This requires more time and effort compared to rehost or replatform.
-
-Where it is useful:
-	•	When we need scalability, agility, and cost optimization in the long run.
-	•	When the current architecture limits business growth or flexibility.
-
-Benefits I noted:
-	•	Lower cost (e.g., serverless pay-per-use).
-	•	Faster development cycles with CI/CD pipelines.
-	•	Improved performance and resilience.
+Demo Steps
+	1.	Prepare Source Server – Launched a Windows/Linux EC2 to act as my on-premises server.
+	2.	Enable MGN – Opened Application Migration Service in AWS Console and selected Add server.
+	3.	Create IAM User – Created an IAM user with required MGN policies and generated access keys.
+	4.	Install Replication Agent – Downloaded the MGN replication agent on the source EC2 and installed it using the access keys.
+	5.	Verify Replication – Source server appeared in MGN console; replication status changed to Ready for Testing.
+	6.	Launch Test Instance – Created a test EC2 instance to verify migration worked.
+	7.	Cutover Migration – Performed cutover to launch the final migrated instance as production.
