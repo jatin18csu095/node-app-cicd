@@ -1,2 +1,4 @@
-wget https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-basic-21.9-1.el8.x86_64.rpm
-wget https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-sqlplus-21.9-1.el8.x86_64.rpm
+# Amazon Linux 2 (not 2023)
+sudo yum install -y oracle-instantclient-sqlplus
+sqlplus -V
+sqlplus admin@//<RDS-endpoint>:1521/ORCL
