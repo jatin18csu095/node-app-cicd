@@ -1,4 +1,2 @@
-# Amazon Linux 2 (not 2023)
-sudo yum install -y oracle-instantclient-sqlplus
-sqlplus -V
-sqlplus admin@//<RDS-endpoint>:1521/ORCL
+aws s3 presign s3://oracle-client-rpms-sbx/instantclient/oracle-instantclient-basic-21.9.0.0.0-1.el8.x86_64.rpm --expires-in 3600
+aws s3 presign s3://oracle-client-rpms-sbx/instantclient/oracle-instantclient-sqlplus-21.9.0.0.0-1.el8.x86_64.rpm --expires-in 3600
