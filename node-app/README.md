@@ -1,7 +1,1 @@
-docker run -d ^
-  --name ora-free ^
-  -p 1521:1521 ^
-  -e ORACLE_PASSWORD=Passw0rd1! ^
-  -e APP_USER=APP ^
-  -e APP_USER_PASSWORD=AppPassw0rd1! ^
-  gvenzl/oracle-free
+docker run -d --name ora-free -p 1521:1521 -e ORACLE_PASSWORD=Passw0rd1! -e APP_USER=APP -e APP_USER_PASSWORD=AppPassw0rd1! gvenzl/oracle-free
