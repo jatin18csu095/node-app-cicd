@@ -1,131 +1,142 @@
 #!/usr/bin/env python3
 """
-Oracle DB Summary (client-side, final)
--------------------------------------
-Collects a schema-level summary from an existing Oracle Database:
+Oracle Database Summary Script
+--------------------------------
+This script connects to an existing Oracle Database and generates
+a high-level summary of tables present in the schema. It includes:
 
-• Connects using credentials defined below.
-• Fetches table-level rows (stats or exact), size (MB), and last_analyzed.
-• Prints totals and saves both CSV + JSON summary files.
+ - Table name
+ - Row count (estimated or exact)
+ - Last analyzed date
+ - Table size in MB
+ - Total row and size summary
 
-No DDL or DML — 100% read-only.
+It is read-only — it does not create or modify any data.
 
-Requires: pip install oracledb pandas
+Dependencies:
+    pip install oracledb pandas
 """
 
-import time, json, pandas as pd, oracledb
+import json
+import time
+import pandas as pd
+import oracledb
 
-# =======================
-# 🔧 CONFIGURATION
-# =======================
-HOST        = "db-host-or-ip"     # e.g. "10.12.34.56" or "db.company.com"
-PORT        = 1521
-SERVICE     = "PRODDB"            # Service name (not SID)
-USER        = "MIGRATION_USER"
-PASSWORD    = "YourPasswordHere"
+# -------------------------------------------------------------------
+# Configuration section — update these values for your environment
+# -------------------------------------------------------------------
 
-OWNER       = None                # None → current schema; or "TARGET_SCHEMA"
-MODE        = "stats"             # "stats" (fast, NUM_ROWS) or "exact" (slow, COUNT(*))
-OUT_PREFIX  = "oracle_summary"    # filename prefix
-# =======================
+HOST = "your-db-host"       # e.g., "10.12.34.56" or "db.example.com"
+PORT = 1521
+SERVICE = "PRODDB"          # Oracle service name (not SID)
+USER = "MIG_USER"
+PASSWORD = "Password123"
+
+OWNER = None                # Leave None for current schema; else specify e.g. "HR"
+MODE = "stats"              # "stats" = NUM_ROWS (fast), "exact" = COUNT(*) (slow)
+OUT_PREFIX = "oracle_summary"
+# -------------------------------------------------------------------
 
 
-def connect():
+def get_connection():
+    """Establish a connection to the Oracle database."""
     dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE)
     return oracledb.connect(user=USER, password=PASSWORD, dsn=dsn)
 
 
-def fetch_tables_and_sizes(conn, owner: str | None):
-    """Return DataFrame with OWNER, TABLE_NAME, NUM_ROWS, LAST_ANALYZED, SIZE_MB."""
+def fetch_table_summary(conn, owner=None):
+    """Fetch metadata for all tables with row estimates and size in MB."""
     with conn.cursor() as cur:
         if owner:
-            sql = """
-            WITH t AS (
-              SELECT owner, table_name, num_rows, last_analyzed
-              FROM ALL_TABLES
-              WHERE UPPER(owner)=:owner
-            ),
-            s AS (
-              SELECT owner, segment_name AS table_name, SUM(bytes) AS bytes
-              FROM ALL_SEGMENTS
-              WHERE UPPER(owner)=:owner
-                AND segment_type IN ('TABLE','TABLE PARTITION','TABLE SUBPARTITION')
-              GROUP BY owner, segment_name
-            )
-            SELECT t.owner, t.table_name, t.num_rows, t.last_analyzed,
-                   ROUND(NVL(s.bytes,0)/1024/1024,2) AS size_mb
-            FROM t LEFT JOIN s
-              ON s.owner=t.owner AND s.table_name=t.table_name
-            ORDER BY size_mb DESC NULLS LAST, t.table_name
+            query = """
+                WITH t AS (
+                    SELECT owner, table_name, num_rows, last_analyzed
+                    FROM ALL_TABLES WHERE UPPER(owner) = :owner
+                ),
+                s AS (
+                    SELECT owner, segment_name AS table_name, SUM(bytes) AS bytes
+                    FROM ALL_SEGMENTS
+                    WHERE UPPER(owner) = :owner
+                      AND segment_type IN ('TABLE','TABLE PARTITION','TABLE SUBPARTITION')
+                    GROUP BY owner, segment_name
+                )
+                SELECT t.owner, t.table_name, t.num_rows, t.last_analyzed,
+                       ROUND(NVL(s.bytes,0)/1024/1024,2) AS size_mb
+                FROM t LEFT JOIN s
+                ON s.owner = t.owner AND s.table_name = t.table_name
+                ORDER BY size_mb DESC NULLS LAST, t.table_name
             """
-            cur.execute(sql, owner=owner.upper())
+            cur.execute(query, owner=owner.upper())
         else:
-            sql = """
-            WITH t AS (
-              SELECT USER AS owner, table_name, num_rows, last_analyzed
-              FROM USER_TABLES
-            ),
-            s AS (
-              SELECT segment_name AS table_name, SUM(bytes) AS bytes
-              FROM USER_SEGMENTS
-              WHERE segment_type IN ('TABLE','TABLE PARTITION','TABLE SUBPARTITION')
-              GROUP BY segment_name
-            )
-            SELECT USER AS owner, t.table_name, t.num_rows, t.last_analyzed,
-                   ROUND(NVL(s.bytes,0)/1024/1024,2) AS size_mb
-            FROM t LEFT JOIN s ON s.table_name=t.table_name
-            ORDER BY size_mb DESC NULLS LAST, t.table_name
+            query = """
+                WITH t AS (
+                    SELECT USER AS owner, table_name, num_rows, last_analyzed
+                    FROM USER_TABLES
+                ),
+                s AS (
+                    SELECT segment_name AS table_name, SUM(bytes) AS bytes
+                    FROM USER_SEGMENTS
+                    WHERE segment_type IN ('TABLE','TABLE PARTITION','TABLE SUBPARTITION')
+                    GROUP BY segment_name
+                )
+                SELECT USER AS owner, t.table_name, t.num_rows, t.last_analyzed,
+                       ROUND(NVL(s.bytes,0)/1024/1024,2) AS size_mb
+                FROM t LEFT JOIN s ON s.table_name = t.table_name
+                ORDER BY size_mb DESC NULLS LAST, t.table_name
             """
-            cur.execute(sql)
-        rows = cur.fetchall()
-        cols = [d[0] for d in cur.description]
-    return pd.DataFrame(rows, columns=cols)
+            cur.execute(query)
+        data = cur.fetchall()
+        columns = [col[0] for col in cur.description]
+    return pd.DataFrame(data, columns=columns)
 
 
-def exact_counts(conn, owner: str | None, df: pd.DataFrame) -> pd.Series:
-    """Run COUNT(*) per table (slow on big tables)."""
-    counts = []
+def count_rows_exact(conn, owner, df):
+    """Get exact row count using COUNT(*) for each table."""
+    results = []
     with conn.cursor() as cur:
-        for _, r in df.iterrows():
-            tname = r["TABLE_NAME"]
-            fq = f"\"{owner.upper()}\".\"{tname}\"" if owner else f"\"{tname}\""
+        for _, row in df.iterrows():
+            table_name = row["TABLE_NAME"]
+            fq_table = f"\"{owner.upper()}\".\"{table_name}\"" if owner else f"\"{table_name}\""
             try:
-                cur.execute(f"SELECT /*+ FULL(t) */ COUNT(*) FROM {fq} t")
-                counts.append(cur.fetchone()[0])
-            except Exception as e:
-                print(f"⚠️  Skipping {fq}: {e}")
-                counts.append(None)
-    return pd.Series(counts, index=df.index, name="ROWS")
+                cur.execute(f"SELECT COUNT(*) FROM {fq_table}")
+                results.append(cur.fetchone()[0])
+            except Exception as err:
+                print(f"⚠️  Skipping {table_name}: {err}")
+                results.append(None)
+    return pd.Series(results, index=df.index, name="ROWS")
 
 
-def summarize(df: pd.DataFrame, owner_label: str, mode: str):
-    """Print summary and write CSV/JSON."""
-    for c in ["OWNER","TABLE_NAME","ROWS","ROWS_SOURCE","LAST_ANALYZED","SIZE_MB","NUM_ROWS"]:
-        if c not in df.columns: df[c] = pd.NA
-    df = df[["OWNER","TABLE_NAME","ROWS","ROWS_SOURCE","LAST_ANALYZED","SIZE_MB","NUM_ROWS"]]
+def summarize(df, owner_label, mode):
+    """Print summary and save to CSV/JSON."""
+    for col in ["OWNER", "TABLE_NAME", "ROWS", "ROWS_SOURCE", "LAST_ANALYZED", "SIZE_MB", "NUM_ROWS"]:
+        if col not in df.columns:
+            df[col] = pd.NA
+    df = df[["OWNER", "TABLE_NAME", "ROWS", "ROWS_SOURCE", "LAST_ANALYZED", "SIZE_MB", "NUM_ROWS"]]
 
     total_tables = len(df)
     total_rows = int(df["ROWS"].fillna(0).sum())
     total_size = round(df["SIZE_MB"].fillna(0).sum(), 2)
 
-    print("\n=== ORACLE DATABASE SUMMARY ===")
-    print(f"Owner/schema  : {owner_label}")
-    print(f"Row mode      : {mode.upper()}")
-    print(f"Tables        : {total_tables}")
-    print(f"Total rows    : {total_rows:,}")
-    print(f"Total size MB : {total_size:,}\n")
+    print("\n==============================")
+    print("     ORACLE DATABASE SUMMARY  ")
+    print("==============================")
+    print(f"Schema/Owner : {owner_label}")
+    print(f"Row Mode     : {mode.upper()}")
+    print(f"Tables       : {total_tables}")
+    print(f"Total Rows   : {total_rows:,}")
+    print(f"Total Size   : {total_size} MB\n")
 
-    top = df.sort_values("SIZE_MB", ascending=False).head(10)[["TABLE_NAME","ROWS","SIZE_MB"]]
-    if not top.empty:
-        print("Top 10 largest tables:")
-        for _, r in top.iterrows():
-            print(f"  {r['TABLE_NAME']:<40} rows={str(r['ROWS']):>10}  size_mb={r['SIZE_MB']}")
+    top_tables = df.sort_values("SIZE_MB", ascending=False).head(10)
+    if not top_tables.empty:
+        print("Top 10 Largest Tables:")
+        for _, r in top_tables.iterrows():
+            print(f"  {r['TABLE_NAME']:<30} Rows: {str(r['ROWS']):>10}   Size_MB: {r['SIZE_MB']}")
 
-    csv = f"{OUT_PREFIX}_{owner_label}_{mode}.csv"
-    jsn = f"{OUT_PREFIX}_{owner_label}_{mode}.json"
+    csv_file = f"{OUT_PREFIX}_{owner_label}_{mode}.csv"
+    json_file = f"{OUT_PREFIX}_{owner_label}_{mode}.json"
 
-    df.to_csv(csv, index=False)
-    with open(jsn, "w") as f:
+    df.to_csv(csv_file, index=False)
+    with open(json_file, "w") as f:
         json.dump({
             "generated_at": int(time.time()),
             "owner": owner_label,
@@ -136,16 +147,17 @@ def summarize(df: pd.DataFrame, owner_label: str, mode: str):
             "tables": df.fillna("").to_dict(orient="records")
         }, f, indent=2)
 
-    print(f"\n✅ Wrote files:\n  {csv}\n  {jsn}\n")
+    print(f"\n✅ Output generated:\n  - {csv_file}\n  - {json_file}\n")
 
 
 def main():
-    conn = connect()
+    """Main entry point."""
+    conn = get_connection()
     try:
-        df = fetch_tables_and_sizes(conn, OWNER)
+        df = fetch_table_summary(conn, OWNER)
 
         if MODE.lower() == "exact":
-            df["ROWS"] = exact_counts(conn, OWNER, df)
+            df["ROWS"] = count_rows_exact(conn, OWNER, df)
             df["ROWS_SOURCE"] = "EXACT"
         else:
             df["ROWS"] = df["NUM_ROWS"]
@@ -155,8 +167,10 @@ def main():
         summarize(df, owner_label, MODE.lower())
 
     finally:
-        try: conn.close()
-        except: pass
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
