@@ -1,20 +1,18 @@
-title Azure Entra ID Authentication Flow via AWS ALB (Simplified)
+title App Flow (Entra + ALB — Simplified)
 
-actor User as 👤 User
-participant ALB as 🌐 AWS Application Load Balancer
-participant Entra as ☁️ Azure Entra ID (Authentication)
-participant App as 💻 Application (Backend on EC2)
+actor User
+participant ALB
+participant Entra
+participant App
 
-note over User,App: Simple practical authentication flow
+User->ALB: 1) Access HTTPS URL
+ALB->User: 2) Redirect to Entra (login)
+User->Entra: 3) Enter corporate credentials
+Entra->ALB: 4) Confirm authentication\n(and check group membership)
+ALB->ALB: 5) Verify sign-in with Entra\n(create/refresh session)
+ALB->App: 6) Forward request (only if authenticated)
+App->User: 7) Show protected page
 
-User->ALB: 1) Open application URL (HTTPS)
-ALB-->User: 2) Redirect user to Azure Entra ID login page
-User->Entra: 3) Enter corporate credentials\n(User ID + Password / MFA)
-Entra->Entra: 4) Validate user against AD Group membership
-Entra-->ALB: 5) Confirm successful authentication
-ALB->App: 6) Forward user request to backend\nwith verified identity info
-App-->User: 7) Display application dashboard / protected content
-
-note over Entra: • Users must be added in Entra ID group\n• Group is created by IT/Admin team\n• Only group members can access the app
-note over ALB: • ALB is configured with HTTPS + OIDC provider\n• Redirects to Entra for authentication
-note over App: • Application hosted on EC2\n• Receives traffic only after user is authenticated
+note over Entra: Users are managed in Entra ID.\nAdd members to the AD group to allow access.
+note over ALB: ALB enforces HTTPS and redirects to Entra.
+note over App: Backend service (EC2/ECS) receives traffic only after auth.
