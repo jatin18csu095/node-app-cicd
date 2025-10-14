@@ -1,49 +1,50 @@
-%% Color-coded Azure Entra ID Integration Flow & Sequence Diagram
+title Azure Entra ID Authentication Flow via AWS ALB
 
-%% FLOW DIAGRAM
-flowchart TD
-    style A fill:#e0f7fa,stroke:#006064,stroke-width:2px
-    style B fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    style C fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
-    style D fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
-    style E fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
-    style F fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
-    style G fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    style H fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+actor User as 👤 End User
+participant ALB as 🌐 AWS Application Load Balancer
+participant Entra as ☁️ Azure Entra ID (OIDC)
+participant ADGroup as 👥 AD Group (GIFT_ARCHIVE_USERS)
+participant AppReg as 🧾 Entra App Registration
+participant TG as 🎯 Target Group
+participant EC2 as 💻 Backend App (EC2)
+participant ACM as 📜 AWS Certificate Manager
+participant AWSAdmin as 🛠️ AWS Admin
+participant AzureAdmin as 🔐 Azure Admin
+participant Secrets as 🔑 Secrets Manager
 
-    A[👤 User] -->|1️⃣ Access App URL| B[🌐 AWS Application Load Balancer (ALB)]
-    B -->|2️⃣ Unauthenticated - Redirect| C[🔐 Azure Entra ID Login Page]
-    C -->|3️⃣ User Enters Credentials| D[🧩 Entra ID Validates User]
-    D -->|4️⃣ Check Group Membership| E[👥 Verify AD Group (e.g., GIFT_ARCHIVE_USERS)]
-    E -->|5️⃣ If Valid| F[📜 Issue ID Token (OIDC)]
-    F -->|6️⃣ Return Token| G[🧾 ALB Validates Token]
-    G -->|7️⃣ Authenticated| H[💻 Forward Request to Backend Application (EC2/ECS)]
-    H -->|8️⃣ Response| A
+note over AWSAdmin,AzureAdmin: 🔧 Provisioning & Setup Phase
 
-    subgraph Azure_Entra_ID[☁️ Azure Entra ID / Active Directory]
-        C --> D --> E --> F
-    end
+AWSAdmin->ACM: Request/Import HTTPS Certificate
+ACM-->AWSAdmin: Certificate Issued
+AWSAdmin->EC2: Launch Backend Instance (port 80/8080)
+AWSAdmin->TG: Create Target Group & Register EC2
+AWSAdmin->ALB: Create ALB (internet-facing)
+AWSAdmin->ALB: Attach HTTPS Listener & Certificate
 
-    subgraph AWS_Environment[☁️ AWS Environment]
-        B --> G --> H
-    end
+AzureAdmin->AppReg: Register Application in Entra ID
+AzureAdmin->AppReg: Add Redirect URI (https://<ALB-DNS>/oauth2/idpresponse)
+AppReg-->AzureAdmin: Provides Client ID & Tenant ID
+AzureAdmin->AppReg: Generate Client Secret
+AzureAdmin->ADGroup: Create AD Group & Add Users
+AzureAdmin-->AWSAdmin: Share Tenant ID, Client ID, Secret
+AWSAdmin->Secrets: Store Client Secret in AWS Secrets Manager
+AWSAdmin->ALB: Configure OIDC Authentication with Entra ID
+ALB->ALB: Add Rule — Authenticate OIDC → Forward to TG
 
+note over User,EC2: 🚀 Runtime Authentication Flow
 
-%% SEQUENCE DIAGRAM
-sequenceDiagram
-    autonumber
-    participant User as 👤 User
-    participant ALB as 🌐 Application Load Balancer (AWS)
-    participant Entra as 🔐 Azure Entra ID (IdP)
-    participant Backend as 💻 Backend Application (EC2/ECS)
+User->ALB: Access Application URL (HTTPS)
+ALB-->User: Redirect to Azure Entra ID Login Page
+User->Entra: Submit Credentials (User/Password + MFA)
+Entra->ADGroup: Validate Group Membership
+Entra-->ALB: Return Authorization Code
+ALB->Entra: Exchange Code for Tokens (Token Endpoint)
+Entra-->ALB: Return ID Token (JWT)
+ALB->ALB: Validate Token (Issuer, Signature, Audience)
+ALB->EC2: Forward Request with OIDC Headers (x-amzn-oidc-data)
+EC2-->User: Send Application Response
 
-    User->>ALB: 1️⃣ Access application URL (HTTPS)
-    ALB->>Entra: 2️⃣ Redirect to Microsoft Login (OIDC Request)
-    Entra->>User: 3️⃣ Display login page
-    User->>Entra: 4️⃣ Submit credentials
-    Entra->>Entra: 5️⃣ Validate credentials & check AD group membership
-    Entra-->>ALB: 6️⃣ Return ID token (OIDC Response)
-    ALB->>ALB: 7️⃣ Validate ID token using Azure public keys
-    ALB->>Backend: 8️⃣ Forward request with user identity headers
-    Backend-->>ALB: 9️⃣ Send response to ALB
-    ALB-->>User: 🔟 Return authenticated content
+note over User,ALB: 🔁 Optional Logout Flow
+User->ALB: /logout
+ALB-->User: Redirect to Entra End-Session Endpoint
+ALB->ALB: Clear ALB Auth Session Cookie
