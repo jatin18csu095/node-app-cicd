@@ -1,129 +1,131 @@
 #!/usr/bin/env python3
 """
-Oracle Table Lister (robust)
-- Lists direct tables visible to the user (USER_TABLES + ALL_TABLES)
-- Lists PUBLIC/USER synonyms and shows their targets
-- Prints first 50 names
-- Writes compact and detailed CSV/JSON outputs
+Oracle DB Schema Summary (with size in GB)
+------------------------------------------
+✅ Lists all tables with row count & size (MB / GB)
+✅ Summarizes total schema size
+✅ Exports CSV + JSON outputs
+✅ Works read-only (safe for production)
 """
 
+import pandas as pd
 import json
 import time
-import pandas as pd
 import oracledb
 
-# ---------- CONFIG: edit these ----------
+# ---------- CONFIG ----------
 HOST     = "p2ehowld8001"
 PORT     = 1526
 SERVICE  = "GIFTARC"
 USER     = "x292151"
 PASSWORD = "your_password_here"
-OUT_PREFIX = "oracle_table_list"
-# ----------------------------------------
+OUT_PREFIX = "oracle_schema_summary"
+OWNER_FILTER = None    # Set schema name if known (e.g. "GIFTARC"); else None auto-detect
+# ----------------------------
 
 
 def connect():
     dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE)
-    return oracledb.connect(user=USER, password=PASSWORD, dsn=dsn)
+    conn = oracledb.connect(user=USER, password=PASSWORD, dsn=dsn)
+    return conn
 
 
-def fetch_direct_tables(conn) -> pd.DataFrame:
-    """
-    Directly visible tables (owns or accessible).
-    Returns columns: OWNER, NAME, SOURCE, TARGET_OWNER, TARGET_TABLE
-    """
+def detect_owner(conn):
+    """Find top schema owner visible to this user."""
     with conn.cursor() as cur:
-        rows = []
-        # USER_TABLES (own schema)
-        cur.execute("SELECT USER AS owner, table_name FROM USER_TABLES")
-        rows += [(r[0], r[1], "DIRECT", None, None) for r in cur.fetchall()]
-        # ALL_TABLES (may require extra grants; if it fails we just skip)
-        try:
-            cur.execute("SELECT owner, table_name FROM ALL_TABLES")
-            rows += [(r[0], r[1], "DIRECT", None, None) for r in cur.fetchall()]
-        except Exception as e:
-            print(f"[Info] Skipping ALL_TABLES (not accessible): {e}")
-        df = pd.DataFrame(rows, columns=["OWNER", "NAME", "SOURCE", "TARGET_OWNER", "TARGET_TABLE"])
-        # De-duplicate DISPLAY entries
-        df.drop_duplicates(subset=["OWNER", "NAME", "SOURCE"], inplace=True)
-        df.reset_index(drop=True, inplace=True)
-        return df
-
-
-def fetch_synonym_tables(conn) -> pd.DataFrame:
-    """
-    PUBLIC/USER synonyms you can see.
-    Returns columns: OWNER (synonym owner), NAME (synonym name), SOURCE='SYNONYM',
-                     TARGET_OWNER, TARGET_TABLE
-    """
-    with conn.cursor() as cur:
+        cur.execute("SELECT USER FROM dual")
+        me = cur.fetchone()[0]
         try:
             cur.execute("""
-                SELECT owner, synonym_name, table_owner, table_name
-                FROM ALL_SYNONYMS
-                WHERE owner IN (USER, 'PUBLIC')
+                SELECT DISTINCT owner FROM all_tables 
+                WHERE owner NOT IN ('SYS','SYSTEM','XDB','MDSYS') FETCH FIRST 1 ROWS ONLY
             """)
-            rows = cur.fetchall()
-        except Exception as e:
-            print(f"[Info] Skipping ALL_SYNONYMS (not accessible): {e}")
-            return pd.DataFrame(columns=["OWNER","NAME","SOURCE","TARGET_OWNER","TARGET_TABLE"])
-
-    df = pd.DataFrame(rows, columns=["OWNER","NAME","TARGET_OWNER","TARGET_TABLE"])
-    df["SOURCE"] = "SYNONYM"
-    # Prefer USER synonyms over PUBLIC when both point to same target
-    df["_rank"] = (df["OWNER"] == "PUBLIC").astype(int)  # USER=0, PUBLIC=1
-    df.sort_values(by=["TARGET_OWNER","TARGET_TABLE","_rank","OWNER","NAME"], inplace=True, kind="stable")
-    df = df.drop_duplicates(subset=["TARGET_OWNER","TARGET_TABLE"], keep="first")
-    df.drop(columns=["_rank"], inplace=True)
-    df.reset_index(drop=True, inplace=True)
-    return df[["OWNER","NAME","SOURCE","TARGET_OWNER","TARGET_TABLE"]]
+            row = cur.fetchone()
+            if row:
+                return row[0]
+        except Exception:
+            pass
+        return me
 
 
-def save_outputs(df_compact: pd.DataFrame, df_detail: pd.DataFrame):
-    ts_suffix = time.strftime("%Y%m%d_%H%M%S")
+def fetch_schema_summary(conn, owner):
+    """Return DataFrame of table sizes and row counts for the schema."""
+    sql = f"""
+        SELECT
+            t.owner,
+            t.table_name,
+            t.num_rows,
+            s.bytes / 1024 / 1024 AS size_mb
+        FROM all_tables t
+        LEFT JOIN all_segments s
+        ON t.table_name = s.segment_name AND t.owner = s.owner
+        WHERE t.owner = :owner
+        ORDER BY s.bytes DESC NULLS LAST
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, owner=owner)
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description]
+    df = pd.DataFrame(rows, columns=cols)
+    df["size_mb"].fillna(0, inplace=True)
+    df["size_gb"] = (df["size_mb"] / 1024).round(3)
+    return df
 
-    # Compact (OWNER, NAME, SOURCE)
-    compact_csv  = f"{OUT_PREFIX}_compact_{ts_suffix}.csv"
-    compact_json = f"{OUT_PREFIX}_compact_{ts_suffix}.json"
-    df_compact.to_csv(compact_csv, index=False)
-    df_compact.to_json(compact_json, orient="records", indent=2)
 
-    # Detailed (+ TARGET_OWNER, TARGET_TABLE for synonyms)
-    detail_csv  = f"{OUT_PREFIX}_detailed_{ts_suffix}.csv"
-    detail_json = f"{OUT_PREFIX}_detailed_{ts_suffix}.json"
-    df_detail.to_csv(detail_csv, index=False)
-    df_detail.to_json(detail_json, orient="records", indent=2)
+def summarize_schema(df, owner):
+    """Print summary and export files."""
+    total_tables = len(df)
+    total_rows = int(df["NUM_ROWS"].fillna(0).sum())
+    total_mb = df["size_mb"].sum()
+    total_gb = total_mb / 1024
+
+    print("\n===== ORACLE SCHEMA SUMMARY =====")
+    print(f"Schema / Owner   : {owner}")
+    print(f"Total Tables     : {total_tables}")
+    print(f"Total Rows       : {total_rows:,}")
+    print(f"Total Size (MB)  : {round(total_mb, 2)} MB")
+    print(f"Total Size (GB)  : {round(total_gb, 3)} GB")
+    print("=================================\n")
+
+    print("Top 10 Largest Tables:")
+    for _, r in df.nlargest(10, "size_mb").iterrows():
+        print(f"{r['TABLE_NAME']:<40} {r['size_mb']:>10.2f} MB {r['NUM_ROWS']:>10}")
+
+    # Export outputs
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    csv_file = f"{OUT_PREFIX}_{owner}_{ts}.csv"
+    json_file = f"{OUT_PREFIX}_{owner}_{ts}.json"
+    df.to_csv(csv_file, index=False)
+    with open(json_file, "w") as f:
+        json.dump({
+            "generated_at": int(time.time()),
+            "owner": owner,
+            "table_count": total_tables,
+            "total_rows": total_rows,
+            "total_size_mb": round(total_mb, 2),
+            "total_size_gb": round(total_gb, 3),
+            "tables": df.fillna("").to_dict(orient="records")
+        }, f, indent=2)
 
     print(f"\n✅ Exported:")
-    print(f"  {compact_csv}")
-    print(f"  {compact_json}")
-    print(f"  {detail_csv}")
-    print(f"  {detail_json}\n")
+    print(f"  {csv_file}")
+    print(f"  {json_file}\n")
 
 
 def main():
-    print("Connecting to Oracle...")
+    print("🔗 Connecting to Oracle...")
     conn = connect()
-    print(f"Connected as: {USER}\n")
+    print(f"✅ Connected as: {USER}")
 
-    df_direct  = fetch_direct_tables(conn)
-    print(f"Found {len(df_direct)} direct tables.")
+    owner = OWNER_FILTER or detect_owner(conn)
+    print(f"\n📂 Using schema owner: {owner}")
 
-    df_syn     = fetch_synonym_tables(conn)
-    print(f"Found {len(df_syn)} synonym mappings.\n")
+    df = fetch_schema_summary(conn, owner)
+    if df.empty:
+        print(f"\n⚠️ No tables found for schema {owner}. Check access or grants.")
+    else:
+        summarize_schema(df, owner)
 
-    # Build compact and detailed sets
-    df_detail = pd.concat([df_direct, df_syn], ignore_index=True)
-    # Compact list is just display names; ensure uniqueness
-    df_compact = df_detail[["OWNER","NAME","SOURCE"]].drop_duplicates().reset_index(drop=True)
-
-    # Print first 50 for a quick look
-    print("=== SAMPLE (first 50) ===")
-    for _, r in df_compact.head(50).iterrows():
-        print(f"{r['OWNER']:<15} {r['NAME']:<40} {r['SOURCE']}")
-    print("...")
-
-    save_outputs(df_compact, df_detail)
     conn.close()
 
 
