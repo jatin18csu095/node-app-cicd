@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-STAGING schema summary (robust, read-only)
-
-- Summarizes tables in the STAGING schema only
-- Always returns table list + NUM_ROWS (from ALL_TABLES) if permitted
-- Adds SIZE_MB / SIZE_GB (from ALL_SEGMENTS) when permitted
-- Prints a concise console summary and exports CSV + JSON
+STAGING schema summary (final, JSON-safe)
+- Summarizes all tables in STAGING
+- Adds NUM_ROWS and LAST_ANALYZED
+- Adds SIZE_MB / SIZE_GB when accessible
+- Exports clean CSV + JSON (timestamp-safe)
 """
 
 import time
@@ -13,16 +12,16 @@ import json
 import pandas as pd
 import oracledb
 
-# ----------------- CONFIG: EDIT THESE -----------------
+# ----------------- CONFIG -----------------
 HOST      = "p2ehowld8001"
 PORT      = 1526
 SERVICE   = "GIFTARC"
 USER      = "x292151"
-PASSWORD  = "your_password_here"
+PASSWORD  = "tue2943"
 
-OWNER     = "STAGING"           # <-- target schema
-OUT_PREFIX = "staging_summary"  # file name prefix for exports
-# ------------------------------------------------------
+OWNER     = "STAGING"           # target schema
+OUT_PREFIX = "staging_summary"  # output prefix
+# ------------------------------------------
 
 
 def connect():
@@ -31,10 +30,6 @@ def connect():
 
 
 def fetch_alltables(conn, owner: str) -> pd.DataFrame:
-    """
-    Base metadata from ALL_TABLES.
-    Columns returned: OWNER, TABLE_NAME, NUM_ROWS, LAST_ANALYZED
-    """
     sql = """
         SELECT owner, table_name, num_rows, last_analyzed
         FROM ALL_TABLES
@@ -49,10 +44,6 @@ def fetch_alltables(conn, owner: str) -> pd.DataFrame:
 
 
 def try_add_sizes(conn, df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Optional enrichment from ALL_SEGMENTS. If blocked by privileges,
-    just return df with empty SIZE_* columns.
-    """
     df["SIZE_MB"] = pd.NA
     df["SIZE_GB"] = pd.NA
     if df.empty:
@@ -74,77 +65,84 @@ def try_add_sizes(conn, df: pd.DataFrame) -> pd.DataFrame:
               AND segment_name IN ({", ".join(placeholders)})
             GROUP BY segment_name
         """
-
         with conn.cursor() as cur:
             cur.execute(sql, binds)
             size_map = {seg: float(mb) for seg, mb in cur.fetchall()}
-
         df["SIZE_MB"] = df["TABLE_NAME"].map(size_map)
-        df["SIZE_GB"] = (pd.to_numeric(df["SIZE_MB"], errors="coerce")
-                         .fillna(0) / 1024).round(3)
+        df["SIZE_GB"] = (pd.to_numeric(df["SIZE_MB"], errors="coerce").fillna(0)/1024).round(3)
     except oracledb.DatabaseError:
-        # No dictionary privilege -> leave sizes empty
         pass
-
     return df
 
 
+def json_safe(value):
+    """Convert Timestamp/NaT/float32 objects to JSON-safe types."""
+    if pd.isna(value):
+        return None
+    if hasattr(value, "isoformat"):  # datetime or Timestamp
+        return value.isoformat()
+    if isinstance(value, (float, int, str)):
+        return value
+    return str(value)
+
+
 def summarize_and_export(owner: str, df: pd.DataFrame):
-    # Normalize + safe totals
-    if "NUM_ROWS" not in df.columns:
-        df["NUM_ROWS"] = pd.NA
-    if "SIZE_MB" not in df.columns:
-        df["SIZE_MB"] = pd.NA
-    if "SIZE_GB" not in df.columns:
-        df["SIZE_GB"] = pd.NA
+    df = df.copy()
+    df["NUM_ROWS"] = pd.to_numeric(df["NUM_ROWS"], errors="coerce").fillna(0).astype(int)
+    df["SIZE_MB"] = pd.to_numeric(df["SIZE_MB"], errors="coerce").fillna(0)
+    df["SIZE_GB"] = pd.to_numeric(df["SIZE_GB"], errors="coerce").fillna(0)
 
     total_tables = len(df)
-    total_rows = int(pd.to_numeric(df["NUM_ROWS"], errors="coerce").fillna(0).sum())
-    total_mb = float(pd.to_numeric(df["SIZE_MB"], errors="coerce").fillna(0).sum())
+    total_rows = int(df["NUM_ROWS"].sum())
+    total_mb = float(df["SIZE_MB"].sum())
     total_gb = round(total_mb / 1024, 3) if total_mb else None
 
     print("\n===== STAGING SCHEMA SUMMARY =====")
     print(f"Schema / Owner   : {owner}")
     print(f"Total Tables     : {total_tables}")
     print(f"Total Rows       : {total_rows:,}")
-    if total_gb is not None:
+    if total_gb:
         print(f"Total Size (MB)  : {round(total_mb, 2)}")
         print(f"Total Size (GB)  : {total_gb}")
     else:
         print("Total Size       : N/A (size view not permitted)")
     print("==================================\n")
 
-    # Top 10 largest by size (or by name if size not available)
-    show = df.copy()
-    show["SIZE_MB_NUM"] = pd.to_numeric(show["SIZE_MB"], errors="coerce").fillna(0)
-    if show["SIZE_MB_NUM"].sum() > 0:
-        show = show.sort_values("SIZE_MB_NUM", ascending=False)
-        print("Top 10 tables by size:")
-    else:
-        show = show.sort_values("TABLE_NAME")
-        print("First 10 tables (size not available):")
+    show = df.sort_values("NUM_ROWS", ascending=False)
+    print("Top 10 tables (by row count):")
     for _, r in show.head(10).iterrows():
-        size_str = f"{r['SIZE_MB']} MB" if pd.notna(r["SIZE_MB"]) else "N/A"
-        rows_str = str(int(r["NUM_ROWS"])) if pd.notna(r["NUM_ROWS"]) else "N/A"
-        print(f"  {r['TABLE_NAME']:<40} rows={rows_str:>10}  size={size_str}")
+        print(f"  {r['TABLE_NAME']:<40} rows={r['NUM_ROWS']:>10}  size={r['SIZE_MB']} MB")
 
-    # Export CSV + JSON
-    out = df[["OWNER","TABLE_NAME","NUM_ROWS","LAST_ANALYZED","SIZE_MB","SIZE_GB"]]
+    # Export
     ts = time.strftime("%Y%m%d_%H%M%S")
     csv_path = f"{OUT_PREFIX}_{owner}_{ts}.csv"
     json_path = f"{OUT_PREFIX}_{owner}_{ts}.json"
 
-    out.to_csv(csv_path, index=False)
+    df_out = df[["OWNER","TABLE_NAME","NUM_ROWS","LAST_ANALYZED","SIZE_MB","SIZE_GB"]]
+    df_out.to_csv(csv_path, index=False)
+
+    data = {
+        "generated_at": int(time.time()),
+        "owner": owner,
+        "table_count": total_tables,
+        "total_rows": total_rows,
+        "total_size_mb": round(total_mb, 2) if total_mb else None,
+        "total_size_gb": total_gb,
+        "tables": [
+            {
+                "OWNER": json_safe(row["OWNER"]),
+                "TABLE_NAME": json_safe(row["TABLE_NAME"]),
+                "NUM_ROWS": json_safe(row["NUM_ROWS"]),
+                "LAST_ANALYZED": json_safe(row["LAST_ANALYZED"]),
+                "SIZE_MB": json_safe(row["SIZE_MB"]),
+                "SIZE_GB": json_safe(row["SIZE_GB"]),
+            }
+            for _, row in df_out.iterrows()
+        ],
+    }
+
     with open(json_path, "w") as f:
-        json.dump({
-            "generated_at": int(time.time()),
-            "owner": owner,
-            "table_count": total_tables,
-            "total_rows": total_rows,
-            "total_size_mb": round(total_mb, 2) if total_mb else None,
-            "total_size_gb": total_gb,
-            "tables": out.fillna("").to_dict(orient="records")
-        }, f, indent=2)
+        json.dump(data, f, indent=2)
 
     print(f"\n✅ Wrote:\n  {csv_path}\n  {json_path}\n")
 
@@ -156,17 +154,12 @@ def main():
         print(f"Connected as: {USER}")
         df = fetch_alltables(conn, OWNER)
         if df.empty:
-            print(f"\n⚠️  No tables returned for schema '{OWNER}'.")
-            print("   - Double-check the schema name (uppercase).")
-            print("   - Ensure your user can read ALL_TABLES for that schema.")
+            print(f"\n⚠️ No tables returned for schema '{OWNER}'. Check privileges.")
             return
-
         df = try_add_sizes(conn, df)
         summarize_and_export(OWNER, df)
-
     finally:
-        try: conn.close()
-        except: pass
+        conn.close()
 
 
 if __name__ == "__main__":
