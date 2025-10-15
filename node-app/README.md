@@ -1,5 +1,11 @@
-In our setup, authentication starts through Azure Entra ID, but Ping Identity acts as a federated provider to extend Entra’s security.
-When a user tries to log in through the ALB, they are redirected to Entra ID, which in turn passes the authentication to PingFederate.
-Ping handles extra validations like MFA or on-prem AD check. Once successful, Ping sends a trust token back to Entra, which confirms the user identity and issues an access token to the ALB.
-The ALB then forwards that verified identity to our backend app, which finally displays the secure content.
-Essentially, Ping adds multi-factor and role-based enforcement, while Entra ID stays as the central identity provider trusted by AWS.”
+python - <<'PY'
+import oracledb
+dsn="p2ehowld8001:1526/GIFTARC"
+conn=oracledb.connect(user="x292151", password="your_password", dsn=dsn)
+cur=conn.cursor()
+print("Current user:", conn.username)
+print("\nSchemas that look like GIFT*:")
+for (u,) in cur.execute("SELECT username FROM all_users WHERE username LIKE 'GIFT%' ORDER BY username"):
+    print("  ", u)
+conn.close()
+PY
