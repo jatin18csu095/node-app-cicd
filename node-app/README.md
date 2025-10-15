@@ -1,119 +1,129 @@
 #!/usr/bin/env python3
 """
-Oracle Table Lister (Read-only)
---------------------------------
-This script connects to Oracle and lists all accessible tables for the user.
-It checks:
- - USER_TABLES (tables you own)
- - ALL_TABLES (tables you can query)
- - PUBLIC/USER SYNONYMS (tables linked via synonyms)
-
-Outputs:
- - Prints first 50 table names to console
- - Saves complete list to CSV + JSON
+Oracle Table Lister (robust)
+- Lists direct tables visible to the user (USER_TABLES + ALL_TABLES)
+- Lists PUBLIC/USER synonyms and shows their targets
+- Prints first 50 names
+- Writes compact and detailed CSV/JSON outputs
 """
 
-import pandas as pd
 import json
-import oracledb
 import time
+import pandas as pd
+import oracledb
 
-# ----------- CONFIG (edit these) ------------
+# ---------- CONFIG: edit these ----------
 HOST     = "p2ehowld8001"
 PORT     = 1526
 SERVICE  = "GIFTARC"
 USER     = "x292151"
 PASSWORD = "your_password_here"
 OUT_PREFIX = "oracle_table_list"
-# --------------------------------------------
+# ----------------------------------------
 
 
 def connect():
     dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE)
-    conn = oracledb.connect(user=USER, password=PASSWORD, dsn=dsn)
-    return conn
+    return oracledb.connect(user=USER, password=PASSWORD, dsn=dsn)
 
 
-def fetch_all_tables(conn):
-    """Fetch all accessible tables using USER_TABLES + ALL_TABLES."""
+def fetch_direct_tables(conn) -> pd.DataFrame:
+    """
+    Directly visible tables (owns or accessible).
+    Returns columns: OWNER, NAME, SOURCE, TARGET_OWNER, TARGET_TABLE
+    """
     with conn.cursor() as cur:
+        rows = []
+        # USER_TABLES (own schema)
+        cur.execute("SELECT USER AS owner, table_name FROM USER_TABLES")
+        rows += [(r[0], r[1], "DIRECT", None, None) for r in cur.fetchall()]
+        # ALL_TABLES (may require extra grants; if it fails we just skip)
         try:
-            # ALL_TABLES might need SELECT ANY DICTIONARY, but try anyway
-            cur.execute("""
-                SELECT owner, table_name, 'ALL_TABLES' AS SOURCE
-                FROM ALL_TABLES
-                UNION
-                SELECT USER AS owner, table_name, 'USER_TABLES' AS SOURCE
-                FROM USER_TABLES
-                ORDER BY owner, table_name
-            """)
-            rows = cur.fetchall()
-            return pd.DataFrame(rows, columns=["OWNER", "TABLE_NAME", "SOURCE"])
+            cur.execute("SELECT owner, table_name FROM ALL_TABLES")
+            rows += [(r[0], r[1], "DIRECT", None, None) for r in cur.fetchall()]
         except Exception as e:
-            print(f"[WARN] Could not query ALL_TABLES: {e}")
-            # fallback to USER_TABLES only
-            cur.execute("SELECT USER AS owner, table_name, 'USER_TABLES' AS SOURCE FROM USER_TABLES ORDER BY table_name")
-            rows = cur.fetchall()
-            return pd.DataFrame(rows, columns=["OWNER", "TABLE_NAME", "SOURCE"])
+            print(f"[Info] Skipping ALL_TABLES (not accessible): {e}")
+        df = pd.DataFrame(rows, columns=["OWNER", "NAME", "SOURCE", "TARGET_OWNER", "TARGET_TABLE"])
+        # De-duplicate DISPLAY entries
+        df.drop_duplicates(subset=["OWNER", "NAME", "SOURCE"], inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        return df
 
 
-def fetch_synonym_tables(conn):
-    """Fetch tables accessible via synonyms."""
+def fetch_synonym_tables(conn) -> pd.DataFrame:
+    """
+    PUBLIC/USER synonyms you can see.
+    Returns columns: OWNER (synonym owner), NAME (synonym name), SOURCE='SYNONYM',
+                     TARGET_OWNER, TARGET_TABLE
+    """
     with conn.cursor() as cur:
         try:
             cur.execute("""
                 SELECT owner, synonym_name, table_owner, table_name
                 FROM ALL_SYNONYMS
                 WHERE owner IN (USER, 'PUBLIC')
-                ORDER BY owner, synonym_name
             """)
             rows = cur.fetchall()
-            return pd.DataFrame(rows, columns=["SYN_OWNER", "SYNONYM_NAME", "TABLE_OWNER", "TABLE_NAME"])
         except Exception as e:
-            print(f"[WARN] Could not query ALL_SYNONYMS: {e}")
-            return pd.DataFrame(columns=["SYN_OWNER", "SYNONYM_NAME", "TABLE_OWNER", "TABLE_NAME"])
+            print(f"[Info] Skipping ALL_SYNONYMS (not accessible): {e}")
+            return pd.DataFrame(columns=["OWNER","NAME","SOURCE","TARGET_OWNER","TARGET_TABLE"])
+
+    df = pd.DataFrame(rows, columns=["OWNER","NAME","TARGET_OWNER","TARGET_TABLE"])
+    df["SOURCE"] = "SYNONYM"
+    # Prefer USER synonyms over PUBLIC when both point to same target
+    df["_rank"] = (df["OWNER"] == "PUBLIC").astype(int)  # USER=0, PUBLIC=1
+    df.sort_values(by=["TARGET_OWNER","TARGET_TABLE","_rank","OWNER","NAME"], inplace=True, kind="stable")
+    df = df.drop_duplicates(subset=["TARGET_OWNER","TARGET_TABLE"], keep="first")
+    df.drop(columns=["_rank"], inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    return df[["OWNER","NAME","SOURCE","TARGET_OWNER","TARGET_TABLE"]]
+
+
+def save_outputs(df_compact: pd.DataFrame, df_detail: pd.DataFrame):
+    ts_suffix = time.strftime("%Y%m%d_%H%M%S")
+
+    # Compact (OWNER, NAME, SOURCE)
+    compact_csv  = f"{OUT_PREFIX}_compact_{ts_suffix}.csv"
+    compact_json = f"{OUT_PREFIX}_compact_{ts_suffix}.json"
+    df_compact.to_csv(compact_csv, index=False)
+    df_compact.to_json(compact_json, orient="records", indent=2)
+
+    # Detailed (+ TARGET_OWNER, TARGET_TABLE for synonyms)
+    detail_csv  = f"{OUT_PREFIX}_detailed_{ts_suffix}.csv"
+    detail_json = f"{OUT_PREFIX}_detailed_{ts_suffix}.json"
+    df_detail.to_csv(detail_csv, index=False)
+    df_detail.to_json(detail_json, orient="records", indent=2)
+
+    print(f"\n✅ Exported:")
+    print(f"  {compact_csv}")
+    print(f"  {compact_json}")
+    print(f"  {detail_csv}")
+    print(f"  {detail_json}\n")
 
 
 def main():
-    print("🔗 Connecting to Oracle...")
+    print("Connecting to Oracle...")
     conn = connect()
-    print(f"✅ Connected as: {USER}")
+    print(f"Connected as: {USER}\n")
 
-    # Get tables from both sources
-    df_tables = fetch_all_tables(conn)
-    df_syn = fetch_synonym_tables(conn)
+    df_direct  = fetch_direct_tables(conn)
+    print(f"Found {len(df_direct)} direct tables.")
 
-    print(f"\n📦 Found {len(df_tables)} tables directly visible.")
-    print(f"🔗 Found {len(df_syn)} synonym links.\n")
+    df_syn     = fetch_synonym_tables(conn)
+    print(f"Found {len(df_syn)} synonym mappings.\n")
 
-    # Combine into a single DataFrame
-    if not df_syn.empty:
-        df_syn = df_syn.rename(columns={
-            "SYN_OWNER": "OWNER",
-            "SYNONYM_NAME": "TABLE_NAME"
-        })
-        df_syn["SOURCE"] = "SYNONYM"
-        df_combined = pd.concat([df_tables, df_syn[["OWNER","TABLE_NAME","SOURCE"]]], ignore_index=True)
-    else:
-        df_combined = df_tables
+    # Build compact and detailed sets
+    df_detail = pd.concat([df_direct, df_syn], ignore_index=True)
+    # Compact list is just display names; ensure uniqueness
+    df_compact = df_detail[["OWNER","NAME","SOURCE"]].drop_duplicates().reset_index(drop=True)
 
-    df_combined.drop_duplicates(subset=["OWNER", "TABLE_NAME"], inplace=True)
-    df_combined.reset_index(drop=True, inplace=True)
-
-    # Save to files
-    csv_file = f"{OUT_PREFIX}_all_tables.csv"
-    json_file = f"{OUT_PREFIX}_all_tables.json"
-    df_combined.to_csv(csv_file, index=False)
-    df_combined.to_json(json_file, orient="records", indent=2)
-
-    # Display top results
-    print("=== SAMPLE TABLE LIST (first 50) ===")
-    for i, row in df_combined.head(50).iterrows():
-        print(f"{row['OWNER']:<15} {row['TABLE_NAME']:<40} {row['SOURCE']}")
+    # Print first 50 for a quick look
+    print("=== SAMPLE (first 50) ===")
+    for _, r in df_compact.head(50).iterrows():
+        print(f"{r['OWNER']:<15} {r['NAME']:<40} {r['SOURCE']}")
     print("...")
 
-    print(f"\n✅ Exported full list to:\n  {csv_file}\n  {json_file}")
-
+    save_outputs(df_compact, df_detail)
     conn.close()
 
 
