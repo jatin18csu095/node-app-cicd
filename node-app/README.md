@@ -12,7 +12,7 @@ import json
 import pandas as pd
 import oracledb
 
-# ----------------- CONFIG -----------------
+# ----------------- CONFIGS -----------------
 HOST      = "p2ehowld8001"
 PORT      = 1526
 SERVICE   = "GIFTARC"
