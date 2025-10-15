@@ -1,179 +1,183 @@
-#!/usr/bin/env python3
-"""
-Oracle Accessible Summary (no DBA grants required)
-- If your schema owns tables -> summarizes them.
-- Else, discovers tables reachable via PUBLIC/USER synonyms and summarizes those.
-- Uses COUNT(*) through synonyms so it works even without ALL_SEGMENTS/ALL_TABLES access.
-- Read-only; creates CSV/JSON outputs you can send to the team.
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  CloudFormation template to create AWS DMS Target Endpoint for S3
+  Environment: GIFT Archive | Target: S3 | Region: us-east-1
 
-Requires: pip install oracledb pandas
-"""
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Common Parameters for Tags"
+        Parameters:
+          - ApplicationIDName
+          - CostCenter
+          - RSMs
+          - BusinessUnit
+          - DataClassification
+          - Tier
+      - Label:
+          default: "Target Endpoint Parameters"
+        Parameters:
+          - TgtEndpointIdentifier
+          - BucketName
+          - BucketFolder
+          - DataFormat
+          - CompressionType
+          - EnableStatistics
+          - DatePartitionEnabled
+          - CdcPath
+          - DMSRoleArn
+          - KmsKeyArn
+    ParameterLabels:
+      ApplicationIDName: { default: "Application Name" }
+      CostCenter:       { default: "Cost Center" }
+      RSMs:             { default: "RSM IDs" }
+      BusinessUnit:     { default: "Business Unit" }
+      DataClassification: { default: "Data Classification" }
+      Tier:             { default: "Environment Tier" }
+      TgtEndpointIdentifier: { default: "Endpoint Identifier" }
+      BucketName:       { default: "S3 Bucket Name" }
+      BucketFolder:     { default: "S3 Folder Prefix" }
+      DataFormat:       { default: "Data Format" }
+      CompressionType:  { default: "Compression Type" }
+      EnableStatistics: { default: "Enable Statistics" }
+      DatePartitionEnabled: { default: "Date Partitioning" }
+      CdcPath:          { default: "CDC Folder Path" }
+      DMSRoleArn:       { default: "DMS IAM Role ARN" }
+      KmsKeyArn:        { default: "KMS Key ARN (optional)" }
 
-import time, json
-import pandas as pd
-import oracledb
+Parameters:
+  # ============= Tagging Parameters =============
+  ApplicationIDName:
+    Type: String
+    Default: "GIFT-ARCHIVE"
+    Description: The name for the application.
 
-# ------------- EDIT THESE -------------
-HOST     = "p2ehowld8001"
-PORT     = 1526
-SERVICE  = "GIFTARC"
-USER     = "x292151"
-PASSWORD = "your_password_here"
-OUT_PREFIX = "oracle_accessible_summary"
-# --------------------------------------
+  CostCenter:
+    Type: String
+    Default: "123456"
+    AllowedPattern: '^[1-9][0-9]{5}$'
+    Description: Cost Center for this resource.
 
+  RSMs:
+    Type: String
+    Default: "sthakur"
+    Description: Responsible RSM IDs.
 
-def conn_open():
-    dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE)
-    return oracledb.connect(user=USER, password=PASSWORD, dsn=dsn)
+  BusinessUnit:
+    Type: String
+    Default: "Advisory"
+    Description: The business unit name.
 
-def current_user(conn):
-    with conn.cursor() as cur:
-        cur.execute("SELECT USER FROM dual")
-        return cur.fetchone()[0].upper()
+  DataClassification:
+    Type: String
+    Default: "Internal"
+    AllowedValues: [Internal, Public, Restricted, Confidential]
+    Description: Classification of the data.
 
-def user_tables(conn):
-    """Return DataFrame of tables you OWN (USER_TABLES)."""
-    sql = """
-    SELECT table_name
-    FROM USER_TABLES
-    ORDER BY table_name
-    """
-    with conn.cursor() as cur:
-        cur.execute(sql)
-        rows = cur.fetchall()
-    return pd.DataFrame(rows, columns=["TABLE_NAME"])
+  Tier:
+    Type: String
+    Default: "dev"
+    AllowedValues: [np, dev, qa, stage, prod]
+    Description: Deployment environment.
 
-def accessible_synonyms(conn):
-    """
-    Return synonyms you can use (PUBLIC + your own user), with their target owner/table.
-    Avoids DBA grants.
-    """
-    sql = """
-    SELECT owner, synonym_name, table_owner, table_name
-    FROM ALL_SYNONYMS
-    WHERE owner IN (USER, 'PUBLIC')
-    ORDER BY owner, synonym_name
-    """
-    with conn.cursor() as cur:
-        cur.execute(sql)
-        rows = cur.fetchall()
-    return pd.DataFrame(rows, columns=["SYN_OWNER","SYNONYM_NAME","TABLE_OWNER","TABLE_NAME"])
+  # ============= Target S3 Endpoint Parameters =============
+  TgtEndpointIdentifier:
+    Type: String
+    Default: "gift-archive-s3-target-dev"
+    Description: Unique identifier for the DMS target endpoint.
 
-def count_via_name(conn, name):
-    """Exact count using SELECT COUNT(*) FROM <name> (name can be a synonym)."""
-    with conn.cursor() as cur:
-        cur.execute(f'SELECT /*+ FULL(t) */ COUNT(*) FROM "{name}" t')
-        return cur.fetchone()[0]
+  BucketName:
+    Type: String
+    Default: "gift-archive-bucket"
+    Description: S3 bucket where data will be written.
 
-def safe_count_table(conn, owner, table):
-    """Exact count using quoted owner.table; returns None if no privilege."""
-    fq = f'"{owner}"."{table}"'
-    with conn.cursor() as cur:
-        try:
-            cur.execute(f'SELECT /*+ FULL(t) */ COUNT(*) FROM {fq} t')
-            return cur.fetchone()[0], None
-        except Exception as e:
-            return None, str(e)
+  BucketFolder:
+    Type: String
+    Default: "dms/target/"
+    Description: Folder path (prefix) inside the S3 bucket.
 
-def summarize_owned(conn, me):
-    """Summarize tables you own."""
-    df_names = user_tables(conn)
-    rows = []
-    for _, r in df_names.iterrows():
-        t = r["TABLE_NAME"]
-        try:
-            cnt = count_via_name(conn, t)  # from own schema
-            rows.append({"OWNER": me, "TABLE_NAME": t, "ROWS": cnt, "ROWS_SOURCE": "EXACT", "SIZE_MB": None})
-        except Exception as e:
-            rows.append({"OWNER": me, "TABLE_NAME": t, "ROWS": None, "ROWS_SOURCE": f"ERROR: {e}", "SIZE_MB": None})
-    return pd.DataFrame(rows)
+  DataFormat:
+    Type: String
+    Default: "parquet"
+    AllowedValues: [csv, parquet]
+    Description: Output format for the migrated data.
 
-def summarize_via_synonyms(conn, me):
-    """Summarize tables accessible through synonyms (PUBLIC + USER)."""
-    syn = accessible_synonyms(conn)
-    if syn.empty:
-        return pd.DataFrame(columns=["OWNER","TABLE_NAME","ROWS","ROWS_SOURCE","SIZE_MB","SYNONYM"])
+  CompressionType:
+    Type: String
+    Default: "NONE"
+    AllowedValues: [NONE, GZIP]
+    Description: Compression type for S3 objects.
 
-    # De-duplicate synonyms pointing to same owner.table, prefer USER synonyms over PUBLIC
-    syn["KEY"] = syn["TABLE_OWNER"].fillna("") + "." + syn["TABLE_NAME"].fillna("")
-    syn = syn.dropna(subset=["TABLE_OWNER","TABLE_NAME"])
-    syn = syn.sort_values(by=["SYN_OWNER"], key=lambda s: s.eq('PUBLIC'))  # USER first, then PUBLIC
-    syn = syn.drop_duplicates(subset=["KEY"], keep="first")
+  EnableStatistics:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Whether to enable statistics files.
 
-    rows = []
-    for _, r in syn.iterrows():
-        o = r["TABLE_OWNER"].upper()
-        t = r["TABLE_NAME"].upper()
-        cnt, err = safe_count_table(conn, o, t)
-        rows.append({
-            "OWNER": o,
-            "TABLE_NAME": t,
-            "ROWS": cnt,
-            "ROWS_SOURCE": "EXACT" if err is None else f"ERROR: {err}",
-            "SIZE_MB": None,
-            "SYNONYM": r["SYNONYM_NAME"]
-        })
-    return pd.DataFrame(rows)
+  DatePartitionEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Enable partitioning by date for Athena queries.
 
-def write_outputs(owner_label, df, mode_note):
-    df = df[["OWNER","TABLE_NAME","ROWS","ROWS_SOURCE","SIZE_MB"] + ([c for c in df.columns if c=="SYNONYM"])]
-    total_tables = len(df)
-    total_rows = int(pd.to_numeric(df["ROWS"], errors="coerce").fillna(0).sum())
+  CdcPath:
+    Type: String
+    Default: "cdc/"
+    Description: Folder inside S3 for change data capture (CDC) files.
 
-    print("\n=== ACCESSIBLE DATA SUMMARY ===")
-    print(f"Owner label   : {owner_label}")
-    print(f"Tables        : {total_tables}")
-    print(f"Total rows    : {total_rows:,}")
-    print(f"Size mode     : N/A (no dictionary grants)")
-    print(f"Note          : {mode_note}\n")
+  DMSRoleArn:
+    Type: String
+    Default: ""
+    Description: IAM role ARN that DMS assumes to write to S3 (ServiceAccessRoleArn).
 
-    csv_path  = f"{OUT_PREFIX}_{owner_label}_exact_rows_only.csv"
-    json_path = f"{OUT_PREFIX}_{owner_label}_exact_rows_only.json"
+  KmsKeyArn:
+    Type: String
+    Default: ""
+    Description: Optional KMS Key ARN if S3 bucket uses SSE-KMS.
 
-    df.to_csv(csv_path, index=False)
-    with open(json_path, "w") as f:
-        json.dump({
-            "generated_at": int(time.time()),
-            "owner_label": owner_label,
-            "row_mode": "exact",
-            "size_mode": "rows_only",
-            "table_count": total_tables,
-            "total_rows": total_rows,
-            "tables": df.fillna("").to_dict(orient="records"),
-            "note": mode_note
-        }, f, indent=2)
+Conditions:
+  UseKms: !Not [!Equals [!Ref KmsKeyArn, ""]]
 
-    print(f"Outputs written:\n  {csv_path}\n  {json_path}\n")
+Resources:
+  DmsS3TargetEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: !Ref TgtEndpointIdentifier
+      EndpointType: target
+      EngineName: s3
+      KmsKeyId: !If [UseKms, !Ref KmsKeyArn, !Ref "AWS::NoValue"]
+      S3Settings:
+        ServiceAccessRoleArn: !Ref DMSRoleArn
+        BucketName: !Ref BucketName
+        BucketFolder: !Ref BucketFolder
+        DataFormat: !Ref DataFormat
+        CompressionType: !Ref CompressionType
+        EnableStatistics: !Ref EnableStatistics
+        DatePartitionEnabled: !Ref DatePartitionEnabled
+        CdcPath: !Ref CdcPath
+        EncodingType: "utf-8"
+        ParquetVersion: "parquet-2-0"
+        TimestampColumnName: "dms_ts"
+      Tags:
+        - Key: ApplicationIDName
+          Value: !Ref ApplicationIDName
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: RSMs
+          Value: !Ref RSMs
+        - Key: BusinessUnit
+          Value: !Ref BusinessUnit
+        - Key: DataClassification
+          Value: !Ref DataClassification
+        - Key: Tier
+          Value: !Ref Tier
 
-def main():
-    conn = conn_open()
-    try:
-        me = current_user(conn)
-        print(f"Connected as: {me}")
+Outputs:
+  TargetEndpointArn:
+    Description: ARN of the DMS Target S3 Endpoint
+    Value: !Ref DmsS3TargetEndpoint
 
-        # 1) Try owned tables
-        df_owned = summarize_owned(conn, me)
-        if not df_owned.empty and df_owned["TABLE_NAME"].nunique() > 0:
-            # Filter out all None rows only
-            if df_owned["ROWS"].notna().any():
-                write_outputs(me, df_owned, "Direct tables in your schema (USER_TABLES).")
-                return
-
-        # 2) Try synonyms
-        print("No owned tables found or not accessible; checking synonyms (PUBLIC + USER)...")
-        df_syn = summarize_via_synonyms(conn, me)
-        if not df_syn.empty and df_syn["ROWS"].notna().any():
-            write_outputs("via_synonyms", df_syn, "Tables reached via synonyms you can SELECT.")
-            return
-
-        print("\nNo accessible tables found via USER_TABLES or synonyms.")
-        print("Ask DBA which schema owns the GiftArchive tables, and/or to grant you SELECT on them.")
-        print("If you also need table sizes, ask for SELECT_CATALOG_ROLE (access to ALL_SEGMENTS).")
-
-    finally:
-        try: conn.close()
-        except: pass
-
-if __name__ == "__main__":
-    main()
+  BucketNameOutput:
+    Description: Name of the target S3 bucket
+    Value: !Ref BucketName
