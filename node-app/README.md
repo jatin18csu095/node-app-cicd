@@ -1,55 +1,26 @@
-title DevOps Build Flow (Entra ID + AWS ALB + ECS Fargate)
+title High-Level DevOps Plan (Entra ID + AWS ALB + ECS)
 
 actor DevOps
-participant SailPoint as SailPoint (AD Group Request)
-participant Entra as Entra Admin Center
-participant Secrets as AWS Secrets Manager
-participant ACM as AWS ACM (TLS)
-participant SG as AWS Security Groups
-participant TG as Target Group (IP, Fargate)
-participant ECS as ECS Fargate Service
-participant ALB as AWS Application Load Balancer
+participant Entra as Azure Entra ID
+participant AWSNet as AWS Networking/Security
+participant ECS as ECS Fargate
+participant ALB as AWS ALB
 participant DNS as Route 53
 
-note over DevOps: Repeat ALB + ECS steps per app (8 apps => 8 ALBs)
+DevOps->Entra: 1) Create AD Group (per app) & add users
+DevOps->Entra: 2) App Registration (per app) + Client Secret
+DevOps->Entra: 3) Assign AD Group to App Registration
 
-== Azure Entra prep ==
-DevOps->SailPoint: Request new Azure AD Group (project-specific)
-SailPoint-->DevOps: Group created & approved
-DevOps->Entra: Add project users to Group
-DevOps->Entra: Register "Gift <AppName>" (OIDC) application
-DevOps->Entra: Add Redirect URI:\nhttps://<APP_DNS>/oauth2/idpresponse
-DevOps->Entra: Grant Group access to the App
-Entra-->DevOps: Provide Tenant ID, Client ID, Issuer/Auth/Token endpoints
-DevOps->Entra: Create Client Secret (expiry noted)
-Entra-->DevOps: Client Secret value
-DevOps->Secrets: Store ClientID/Secret/Tenant/Issuer as secret\n(e.g., gift/<app>/entra-oidc)
+DevOps->AWSNet: 4) Ensure VPC + Public/Private Subnets
+DevOps->AWSNet: 5) Create Security Groups (ALB 443; ECS from ALB)
+DevOps->AWSNet: 6) Issue TLS cert in ACM (per app domain)
 
-== AWS networking & security ==
-DevOps->ACM: Request/Import TLS cert for <APP_DNS>
-ACM-->DevOps: Certificate Issued
-DevOps->SG: Create SG-ALB-<app> (HTTPS 443 in; app-specific egress)
-DevOps->SG: Create SG-ECS-<app> (Allow ALB->AppPort; least privilege)
+DevOps->ECS: 7) Create Task Definition & Service (per app)\n(target group created/linked)
 
-== Target group & ECS ==
-DevOps->TG: Create TG-<app> (IP target type, AppPort, health check)
-DevOps->ECS: Create Task Definition (container, port, env, log)
-DevOps->ECS: Create Fargate Service (in private subnets)\nattach TG-<app>
+DevOps->ALB: 8) Create ALB (per app) with HTTPS listener (cert attached)
+DevOps->ALB: 9) Add OIDC auth rule → Entra; then Forward → app TG
 
-== ALB ==
-DevOps->ALB: Create ALB-<app> (internet-facing, public subnets)\nattach SG-ALB-<app>
-DevOps->ALB: Add HTTPS :443 listener with ACM cert
-DevOps->ALB: Listener rule: Authenticate via OIDC -> Entra\n(Issuer, ClientID, Secret from Secrets Manager)
-DevOps->ALB: On success -> Forward to TG-<app>\n(Optional) Add identity headers to target
+DevOps->Entra: 10) Update Redirect URI = https://<APP_DNS>/oauth2/idpresponse
+DevOps->DNS: 11) Create DNS record <APP_DNS> → ALB DNS
 
-== DNS ==
-DevOps->DNS: Create A/AAAA record <APP_DNS> -> ALB-<app> DNS name
-DNS-->DevOps: Public URL active
-
-== Validation (per app) ==
-DevOps->ALB: Access https://<APP_DNS>
-ALB-->DevOps: Redirects to Entra login (policy-driven)
-DevOps->ALB: After login, verify app loads & health checks pass
-DevOps->ALB: Confirm logout URL (optional)
-
-note over DevOps,ALB: Outputs per app:\n• Entra App (Client ID, Secret, Issuer)\n• Secret ARN (stored)\n• ACM cert ARN\n• ALB/TG/SG names\n• Route53 record
+note over DevOps,ALB: Repeat for 8 apps → 8 ALBs, 8 Entra Apps,\n8 AD Groups, 8 ECS Services
