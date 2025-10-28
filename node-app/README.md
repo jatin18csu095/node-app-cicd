@@ -1,26 +1,56 @@
-title High-Level DevOps Plan (Entra ID + AWS ALB + ECS)
-
-actor DevOps
-participant Entra as Azure Entra ID
-participant AWSNet as AWS Networking/Security
-participant ECS as ECS Fargate
-participant ALB as AWS ALB
-participant DNS as Route 53
-
-DevOps->Entra: 1) Create AD Group (per app) & add users
-DevOps->Entra: 2) App Registration (per app) + Client Secret
-DevOps->Entra: 3) Assign AD Group to App Registration
-
-DevOps->AWSNet: 4) Ensure VPC + Public/Private Subnets
-DevOps->AWSNet: 5) Create Security Groups (ALB 443; ECS from ALB)
-DevOps->AWSNet: 6) Issue TLS cert in ACM (per app domain)
-
-DevOps->ECS: 7) Create Task Definition & Service (per app)\n(target group created/linked)
-
-DevOps->ALB: 8) Create ALB (per app) with HTTPS listener (cert attached)
-DevOps->ALB: 9) Add OIDC auth rule → Entra; then Forward → app TG
-
-DevOps->Entra: 10) Update Redirect URI = https://<APP_DNS>/oauth2/idpresponse
-DevOps->DNS: 11) Create DNS record <APP_DNS> → ALB DNS
-
-note over DevOps,ALB: Repeat for 8 apps → 8 ALBs, 8 Entra Apps,\n8 AD Groups, 8 ECS Services
+Step
+Tool / System
+Action
+Key Fields / Values
+Output / Artifact
+Notes / Owner
+Effort (Hours)
+1
+SailPoint Portal
+Navigate to SailPoint (sailpoint.prudential.com)
+URL: sailpoint.prudential.com or from internal portal
+Login successful
+Use corporate SSO credentials
+< 0.5
+2
+SailPoint → Manage User Access
+Open “Manage Access” → “Manage User Access”
+Left menu navigation
+Access management screen loaded
+Confirm your identity appears
+< 0.5
+3
+SailPoint → Select User
+Select the user for whom you’re requesting access
+Usually your own ID appears first
+User selected
+Self or teammate
+< 0.5
+4
+SailPoint → Search Group
+Search for required AD group (e.g., ACC_<APP>_USERS)
+AD Group Name, Description
+Group selected
+Verify correct environment (Dev/UAT/Prod)
+0.5
+5
+SailPoint → Justification
+Enter business justification for request
+Example: “Access required for Entra App integration setup”
+Justification captured
+Apply same for multiple groups
+0.5
+6
+SailPoint → Submit
+Submit request for approval
+Triggers workflow
+Approval email to approvers
+Auto-granted after approval
+< 1
+7
+SailPoint → Check Access
+Manage Identity → View Identity
+Click “Access” to verify memberships
+Access visible under user entitlements
+Used to confirm granted groups
+< 0.5
