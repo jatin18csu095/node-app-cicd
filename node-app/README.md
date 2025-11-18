@@ -1,4 +1,6 @@
 AWS ECS on EC2
+	•	https://docs.aws.amazon.com/AmazonECS/latest/developerguide/windows-containers.html
+	•	https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch-type-ec2.html
 
 Pros:
 	•	Supports containerized deployments
@@ -12,14 +14,6 @@ Cons:
 
 ⸻
 
-AWS EC2 (Lift & Shift)
-
-Pros:
-	•	Simplest option for legacy .NET Framework 4.8 apps
-	•	No containerization required
-	•	Full control over Windows Server & IIS
-
-Cons:
-	•	Manual scaling & higher maintenance
-	•	Larger operational overhead
-	•	Less portability than containers
+AWS EC2
+	•	https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ec2-windows-instances.html
+	•	https://aws.amazon.com/windows/products/ec2/
