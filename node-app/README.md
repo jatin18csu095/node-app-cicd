@@ -1,73 +1,10 @@
-Application
-Environment
-Tenant ID Added?
-Client ID Added?
-Client Secret Created?
-Secret Stored in AWS Secrets Manager?
-Secret ARN Referenced in CFN?
-Status
-Remarks
-QTS
-DEV
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-In progress / Complete
-QTS
-UAT
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-QTS
-PROD
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Spoke
-DEV
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Spoke
-UAT
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Spoke
-PROD
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-ComTrack
-DEV
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-ComTrack
-UAT
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-ComTrack
-PROD
-Yes/No
-Yes/No
-Yes/No
-Yes/No
-Yes/No
+  - Name: app-lambda
+    Type: deploy-pattern
+    Options:
+      pattern: lambda-container
+      pattern-version: latest
+      stack-name: !Sub "${prefix}-${suffix}-lambda"
+      prefix: !Query Environment.ServiceName
+      suffix: !Query Environment.CE_TIER
+    Parameters:
+      LambdaEcrImageUrl: !Query Environment.LambdaEcrImageUrl
