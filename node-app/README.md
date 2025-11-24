@@ -8,3 +8,7 @@
       suffix: !Query Environment.CE_TIER
     Parameters:
       LambdaEcrImageUrl: !Query Environment.LambdaEcrImageUrl
+
+
+
+LambdaEcrImageUrl: "public.ecr.aws/lambda/java:latest"
