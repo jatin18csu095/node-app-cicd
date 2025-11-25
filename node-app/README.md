@@ -1,9 +1,9 @@
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-
-management.endpoints.web.exposure.include=health
-management.endpoint.health.show-details=always
-server.port=8080
-
+- Name: sqs-queue
+  Type: deploy-pattern
+  Options:
+    pattern: custom-cfn
+    pattern-version: latest
+    stack-name: !Sub "${prefix}-${suffix}-sqs"
+    template-file: "templates/sqs.yaml"
+  Parameters:
+    QueueName: !Sub "${foundation}-queue-${suffix}"
