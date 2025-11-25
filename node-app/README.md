@@ -1,14 +1,9 @@
-  - Name: app-lambda
-    Type: deploy-pattern
-    Options:
-      pattern: lambda-container
-      pattern-version: latest
-      stack-name: !Sub "${prefix}-${suffix}-lambda"
-      prefix: !Query Environment.ServiceName
-      suffix: !Query Environment.CE_TIER
-    Parameters:
-      LambdaEcrImageUrl: !Query Environment.LambdaEcrImageUrl
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
 
+management.endpoints.web.exposure.include=health
+management.endpoint.health.show-details=always
+server.port=8080
 
-
-LambdaEcrImageUrl: "public.ecr.aws/lambda/java:latest"
