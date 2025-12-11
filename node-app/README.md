@@ -1,16 +1,7 @@
-#!/bin/sh
-set -e
+Hi Team,
 
-DT_AGENT="/opt/dynatrace/oneagent/dynatrace-agent64.sh"
+We have successfully deployed the Dynatrace-related changes for both Stage and QA environments. The updated tasks are running, and we can now see the Dynatrace OneAgent reflected under the ECS Task configuration. Screenshots are attached for reference.
 
-LIBERTY_BIN="/opt/ol/wlp/bin/server"
-LIBERTY_ARGS="run defaultServer"
+Just to reconfirm — for the remaining environments, the next step from our side will be to add the entrypoint.sh file in the application folder and update the Dockerfile to use that entrypoint. Once we complete this change, we will share the update for your validation.
 
-# If Dynatrace OneAgent script is present
-if [ -f "$DT_AGENT" ]; then
-  echo ">>> Dynatrace agent detected – starting Liberty WITH OneAgent..."
-  exec /bin/sh "$DT_AGENT" "$LIBERTY_BIN" $LIBERTY_ARGS
-else
-  echo ">>> Dynatrace agent NOT found – starting Liberty without OneAgent..."
-  exec "$LIBERTY_BIN" $LIBERTY_ARGS
-fi
+Please let us know if this is the correct approach or if any additional steps are required.
