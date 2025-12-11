@@ -11,3 +11,12 @@ else
   echo ">>> Dynatrace agent NOT found – starting Liberty without OneAgent..."
   exec $LIBERTY_CMD
 fi
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# ============================
+# Final ENTRYPOINT
+# (Dynatrace wrapper → Liberty server)
+# ============================
+ENTRYPOINT ["/entrypoint.sh"]
