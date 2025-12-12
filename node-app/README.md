@@ -1,7 +1,7 @@
-Hi Team,
+Hi Garnet,
 
-We have successfully deployed the Dynatrace-related changes for both Stage and QA environments. The updated tasks are running, and we can now see the Dynatrace OneAgent reflected under the ECS Task configuration. Screenshots are attached for reference.
+We’ve shared the requested screenshots (Dev config, Dynatrace section in manifest, and current entrypoint.sh).
 
-Just to reconfirm — for the remaining environments, the next step from our side will be to add the entrypoint.sh file in the application folder and update the Dockerfile to use that entrypoint. Once we complete this change, we will share the update for your validation.
+SPOCS runs on Open Liberty (Java), so we’ve aligned the OneAgent startup with Liberty rather than the generic Java examples shown on Confluence. At this point, the entrypoint.sh change has not yet been rolled out to Dev, pending confirmation that this is the correct and recommended approach for Liberty on ECS Fargate.
 
-Please let us know if this is the correct approach or if any additional steps are required.
+Could you please confirm if this Liberty-based OneAgent startup is the right pattern, or if any changes are required? Once confirmed, we’ll proceed with integration and rollout.
