@@ -1,9 +1,13 @@
-Hi Garnet,
+#!/bin/sh
+set -e
 
-As discussed, we’ve updated the Dev config to DynatraceType: alpine and deployed the changes successfully. We’re able to see the Dynatrace agent associated with the ECS task; screenshots are attached for reference.
+DT_AGENT="/opt/dynatrace/oneagent/dynatrace-agent64.sh"
+LIBERTY_BIN="/opt/ol/wlp/bin/server"
 
-Could you please confirm the next steps from your side? Also, when you have a moment, could you review the Dockerfile update (entrypoint integration) and the entrypoint.sh approach we’ve prepared to start OneAgent for the application?
-
-Once confirmed, we’ll proceed with rolling out the remaining changes accordingly.
-
-Thanks.
+if [ -f "$DT_AGENT" ]; then
+  echo ">>> Dynatrace OneAgent detected - starting Liberty with OneAgent"
+  exec /bin/sh "$DT_AGENT" "$LIBERTY_BIN" run defaultServer
+else
+  echo ">>> Dynatrace OneAgent NOT found - starting Liberty without OneAgent"
+  exec "$LIBERTY_BIN" run defaultServer
+fi
