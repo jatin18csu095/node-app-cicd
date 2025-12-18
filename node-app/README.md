@@ -1,13 +1,7 @@
-#!/bin/sh
-set -e
+Hi Garnet,
 
-DT_AGENT="/opt/dynatrace/oneagent/dynatrace-agent64.sh"
-LIBERTY_BIN="/opt/ol/wlp/bin/server"
+We’ve updated the Dynatrace configuration to Alpine and verified the setup on AWS ECS. The Dynatrace agent is up and visible, containers are running as expected, and the configuration via dev.yaml and manifest.yaml is correctly applied.
 
-if [ -f "$DT_AGENT" ]; then
-  echo ">>> Dynatrace OneAgent detected - starting Liberty with OneAgent"
-  exec /bin/sh "$DT_AGENT" "$LIBERTY_BIN" run defaultServer
-else
-  echo ">>> Dynatrace OneAgent NOT found - starting Liberty without OneAgent"
-  exec "$LIBERTY_BIN" run defaultServer
-fi
+We’ve also reviewed the documentation/link you shared and aligned our changes accordingly. I’m sharing screenshots for ECS verification along with the repo details. Please let us know if this looks good from your side or if any further steps are required.
+
+Thanks!
