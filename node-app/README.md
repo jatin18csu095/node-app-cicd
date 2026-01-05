@@ -1,107 +1,100 @@
-DYNATRACE CONFIGURATION IMPLEMENTATION – SPOCS (spocsecs)
+Dynatrace OneAgent Setup – SPOCS Application (AWS ECS Fargate)
+	1.	Reference Documentation
 
-1. OVERVIEW
+The Dynatrace OneAgent setup for the SPOCS application has been implemented in accordance with the internal Confluence documentation titled:
 
-Dynatrace configuration has been implemented for the SPOCS (spocsecs) application deployed on AWS ECS (Fargate). The implementation follows the standard Dynatrace integration steps defined in the client-provided Confluence documentation. The configuration has been applied to the DEV and QA environments and deployed successfully. The remaining activity is to obtain Dynatrace UI access in order to validate application visibility and telemetry ingestion within Dynatrace.
+“Deploy Dynatrace OneAgent”
 
-2. APPLICATION AND PLATFORM DETAILS
+All configuration and code changes described in this document strictly follow the steps and parameters outlined in the above Confluence page.
+	2.	Application and Platform Details
 
-Application Name: SPOCS (spocsecs)  
-Application Runtime: Java (OpenLiberty)  
-Deployment Platform: AWS ECS (Fargate)  
-Environments Covered: DEV, QA  
+• Application Name: SPOCS
+• Platform: AWS ECS (Fargate)
+• Runtime: OpenLiberty (Java)
+• Environments Covered:
+– DEV
+– QA
+	3.	Files Modified as Part of the Implementation
 
-The application runs as a containerized Java workload on ECS and uses OpenLiberty as the application server.
+The following files were updated to enable Dynatrace OneAgent integration:
 
-3. DOCUMENTATION REFERENCED
+3.1 Environment Configuration Files
+• configuration/dev.yaml
+• configuration/qa.yaml
 
-The implementation was carried out based on the Dynatrace Confluence documentation shared by the client. The documentation outlines the following high-level requirements:
+3.2 Application Manifest
+• manifest.yaml
 
-- Enabling Dynatrace via application configuration
-- Defining Dynatrace application metadata (tags/properties)
-- Ensuring Dynatrace agent injection during application startup
-- Deploying the changes via the standard CI/CD pipeline
-- Requesting Dynatrace UI access for post-deployment validation
+3.3 Application Container Startup Configuration
+• Dockerfile
+	4.	Environment Configuration Updates (DEV and QA)
 
-All configuration and code changes described in this document align with the steps defined in that documentation.
+As per the Confluence instructions, Dynatrace-specific configuration was added to both the DEV and QA environment configuration files.
 
-4. ENVIRONMENT CONFIGURATION CHANGES
+4.1 Dynatrace Enablement
 
-Dynatrace was enabled using environment-specific configuration files. The same configuration pattern was applied consistently across DEV and QA.
+• Dynatrace: Enabled
 
-Files updated:
-- configuration/dev.yaml
-- configuration/qa.yaml
+4.2 Dynatrace Deployment Type and Tier
 
-The following Dynatrace configuration parameters were added/updated:
+• DynatraceType: alpine
+(Linux-based Dynatrace OneAgent, as requested by the client)
 
-- Dynatrace: Enabled  
-  This enables Dynatrace instrumentation for the application.
+• DynatraceTier: nonprod
 
-- DynatraceTier: nonprod  
-  Specifies the deployment tier for Dynatrace categorization.
+4.3 Dynatrace Application Properties
 
-- DynatraceType: linux  
-  Updated as per client guidance to align with the underlying runtime.
+The following application metadata was configured using the DynatraceProps parameter.
+As requested by the client, these properties were consolidated into a single-line format.
 
-- DynatraceProps  
-  Application metadata used by Dynatrace for identification, grouping, and tagging.
+The following attributes are included:
 
-DynatraceProps was defined as a single-line string as requested by the client. The format applied is as follows:
+• AppGroup
+• AppName
+• AppNumber
+• AppType
+• BU
+• Environment
+• Organization
+• CostCenter
+• PAISID
+
+Configured format used in dev.yaml and qa.yaml:
 
 DynatraceProps:
-"AppGroup=SPOCS AppName=Sales_Practices_and_Oversight_Control_System AppNumber=APM0003529 AppType=java BU=<updated_value> Environment=<dev_or_qa> Organization=<org_name> CostCenter=150170 PAISID=APM0003529"
+“AppGroup= AppName= AppNumber= AppType= BU= Environment= Organization= CostCenter= PAISID=”
 
-Key points regarding DynatraceProps:
-- The value is maintained as a single line.
-- Business Unit (BU), Organization, and Cost Center values were updated based on client inputs.
-- The Environment value is set appropriately per environment (DEV or QA).
-- These properties enable correct application identification and grouping in Dynatrace.
+All values were populated using application and organizational details provided by the client.
+	5.	Manifest File Updates
 
-5. DOCKERFILE UPDATE – APPLICATION STARTUP INTEGRATION
+As described in the Confluence step “Update manifest file to query data from config file”, the application manifest was updated to dynamically read Dynatrace configuration from the environment files.
 
-To ensure that the Dynatrace OneAgent is attached to the Java process at application startup, the application container ENTRYPOINT was updated in the Dockerfile.
+The following entries were added or updated in manifest.yaml:
 
-File updated:
-- Dockerfile
+• Dynatrace: !Query Environment.Dynatrace
+• DynatraceProps: !Query Environment.DynatraceProps
+• DynatraceTier: !Query Environment.DynatraceTier
+• DynatraceType: !Query Environment.DynatraceType
 
-Final ENTRYPOINT configuration applied:
+This ensures that Dynatrace configuration is applied consistently across environments during deployment.
+	6.	Application Container Startup Configuration (Dockerfile)
 
-ENTRYPOINT ["/opt/dynatrace/oneagent/dynatrace-agent64.sh", "/opt/ol/wlp/bin/server", "run", "defaultServer"]
+As per the Confluence step “Configure application source code in BitBucket Repo (entrypoint.sh) to start the OneAgent”, the SPOCS Dockerfile was updated to start the OpenLiberty application with Dynatrace OneAgent attached.
 
-This configuration ensures:
-- The Dynatrace OneAgent wrapper is executed before the OpenLiberty server starts.
-- The Java process runs under Dynatrace instrumentation.
-- No additional startup scripts (such as a separate entrypoint.sh file) are required for this setup.
+The following ENTRYPOINT configuration was applied:
 
-6. DEPLOYMENT STATUS
+ENTRYPOINT
+[”/opt/dynatrace/oneagent/dynatrace-agent64.sh”, “/opt/ol/wlp/bin/server”, “run”, “defaultServer”]
 
-The updated configuration and Dockerfile changes were deployed via the standard CI/CD pipeline.
+This configuration ensures that the Dynatrace OneAgent is injected at application startup and monitors the JVM process.
+	7.	Deployment Status
 
-Deployment status:
-- DEV environment: Deployment completed successfully.
-- QA environment: Deployment completed successfully using the same configuration and startup pattern.
+The above changes were successfully deployed to the following environments:
 
-7. VALIDATION PERFORMED
+• DEV – Deployed and running
+• QA – Deployed and running
+	8.	Dynatrace UI Access
 
-Post-deployment validation was performed using the AWS ECS console:
+Dynatrace OneAgent has been successfully deployed for the SPOCS application.
 
-- New task definitions were created successfully following deployment.
-- Application containers are running as expected after deployment.
-- Dynatrace agent injection is applied at container startup based on the configured ENTRYPOINT and environment variables.
-
-Further validation within the Dynatrace UI will be performed once access is available.
-
-8. PENDING ACTIVITY
-
-Dynatrace UI access is currently pending.
-
-Action required:
-- Raise a Dynatrace UI access request through the standard access request process.
-- Once access is granted, validate application visibility, metadata (DynatraceProps), and telemetry ingestion within the Dynatrace platform.
-
-9. FINAL LIST OF MODIFIED FILES
-
-- configuration/dev.yaml
-- configuration/qa.yaml
-- Dockerfile
+To validate application visibility, metrics, and traces within the Dynatrace UI, access permissions are required. A Dynatrace UI access request needs to be raised to enable verification.
