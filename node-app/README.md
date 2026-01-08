@@ -21,3 +21,11 @@ ENTRYPOINT ["powershell", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass",
     Write-Host 'Dynatrace bootstrap not found - starting normally'; \
     & $args[0] $args[1..($args.Length-1)]; \
   }", "--"]
+
+
+EntryPoint:
+  - "powershell.exe"
+  - "-NoProfile"
+  - "-Command"
+Command:
+  - "New-Item -ItemType Directory -Force -Path 'C:\\dynatrace\\oneagent'; Copy-Item -Recurse -Force 'C:\\dynatrace\\staging\\*' 'C:\\dynatrace\\oneagent'"
