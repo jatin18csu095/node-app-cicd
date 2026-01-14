@@ -1,16 +1,14 @@
-Sure — here’s a short, clear Teams-ready message, with those exact points included and no code references:
+Hi Team,
 
-⸻
+We need assistance with enabling Dynatrace OneAgent on AWS ECS Fargate for a Windows (.NET-based) workload.
 
-Hi team,
-We reviewed the QTS setup and found that the existing ecs-fargate.yaml was originally aligned to Linux-based deployments (Linux paths, conventions, and sidecar assumptions), which works for SPOKE and Comtrack but not for QTS since QTS runs on Windows Fargate.
+So far, all Dynatrace integrations we have implemented on ECS Fargate were for Linux / Alpine-based, Java workloads, using the standard deployment patterns. Those setups are working successfully.
 
-Because of this mismatch, we initially saw deployment and task startup errors. We then updated the ECS Fargate configuration to Windows-specific settings (Windows paths, entry points, and related configurations) and redeployed. The YAML validations now pass, and the task definition updates successfully.
+This is our first Windows-based ECS Fargate workload, and the existing Dynatrace Fargate patterns appear to be Linux-specific. When we attempt to reuse them, the ECS deployment fails during task startup / OneAgent initialization.
 
-However, during service deployment, ECS fails with CannotPullContainerError for the Dynatrace container, and the service rolls back. When Dynatrace is disabled, the service stabilizes, so the blocker appears specific to the Windows Dynatrace image availability/reference.
+Could you please help with:
+	•	Whether a standard Dynatrace OneAgent pattern exists for ECS Fargate Windows
+	•	If not, what changes are required (task definition, image URI, startup configuration, volumes/mounts, etc.)
+	•	The approved Dynatrace OneAgent Windows image/repository to be used
 
-We’d appreciate your guidance on the correct Windows Dynatrace image/repo/tag or the expected setup so we can complete the QTS deployment.
-
-⸻
-
-If you want this to sound more informal or more assertive, I can tweak the tone in one go.
+Let us know if you need logs, ECS events, or configuration details from our side.
