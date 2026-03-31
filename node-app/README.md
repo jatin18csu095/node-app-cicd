@@ -1,75 +1,29 @@
-Overall summary
-	•	Over the last cycle, I have contributed across project delivery, client-facing technical ownership, platform setup, learning, certifications, and capability-building activities.
-	•	My work has included hands-on development, cloud and application support, environment setup, observability, authentication integration, client coordination, and upskilling in GenAI and cloud.
+Delivery & Process — B6L
+	•	During this cycle, I worked across both Migration to Cloud and Prudential Cloud Migration of Apps, and delivered tasks with ownership, quality, and within timelines.
+	•	In Migration to Cloud, I worked on development and stabilization of Python-based microservices, resolved functional issues, improved unit and integration test coverage, and supported containerization of services to make them deployment-ready.
+	•	I contributed to making the application more stable and reliable by fixing gaps in service behavior, strengthening test coverage, and supporting deployment readiness from a development and DevOps perspective.
+	•	In Prudential Cloud Migration of Apps, I contributed to migration and DevOps activities across multiple applications and supported delivery through implementation, migration, and stabilization stages.
+	•	My work included environment setup, Dockerization, deployment support, troubleshooting, CI/CD-related activities, and helping ensure the applications were ready for migration and release.
+	•	I was actively involved in implementation of Dynatrace setup and supported the required configuration and integration changes needed to enable observability for the applications.
+	•	I also contributed to the Entra ID setup as part of the transition from the earlier Ping ID-based authentication setup and supported the implementation and coordination needed for that change.
+	•	I contributed to quality and security from the delivery side by supporting SonarQube integration and related checks, which helped improve delivery confidence and code quality visibility.
+	•	I worked closely with internal team members and client stakeholders, gave regular progress updates, discussed blockers early, and ensured the assigned work moved forward smoothly.
+	•	I also supported documentation and knowledge capture so that the implementation and migration understanding could be reused easily during onboarding and future support.
+	•	Overall, I believe I showed strong execution, dependable delivery, effective troubleshooting, and good collaboration throughout the cycle.
 
-1. Initial project contribution – internal Python-based project
-	•	At the beginning of my journey, I worked on an internal Python-based project.
-	•	In that project, I contributed to building a few microservices, testing them, and supporting their successful deployment.
-	•	This helped me strengthen my understanding of service-based application development, testing, and end-to-end delivery.
+⸻
 
-2. Prudential project – key contributions
-	•	On the Prudential project, I handled multiple responsibilities across application support, cloud setup, environment changes, observability, and authentication-related work.
-	•	I worked closely on migration and deployment-related activities for applications in the Prudential landscape.
-	•	I contributed to environment setup, configuration updates, troubleshooting, and deployment support across different applications.
-	•	I actively collaborated with team members and also engaged with the client to understand requirements, clarify dependencies, and drive work items to closure.
-	•	I took ownership of technical tasks end to end instead of only supporting individual pieces.
-
-3. Dynatrace setup – end-to-end ownership
-	•	One of my major contributions was setting up Dynatrace from scratch.
-	•	I independently worked on understanding the setup, implementing the required configuration changes, and enabling observability for the application environment.
-	•	This included identifying what needed to be changed at application and environment level, coordinating on dependencies, and driving the setup forward.
-	•	I treated this as a complete ownership item and worked through it from initial analysis to implementation and validation support.
-
-4. Entra ID setup / authentication modernization – end-to-end ownership
-	•	I also took ownership of setting up Entra ID from scratch.
-	•	Previously, the setup was using Ping ID, and I worked on supporting the transition/replacement with Entra ID.
-	•	This was an important responsibility because it involved understanding the existing authentication flow, working on the new setup, and helping move toward the new identity solution.
-	•	I handled this with full ownership and contributed from the initial setup stage through implementation and coordination.
-
-5. Client collaboration and communication
-	•	A key part of my contribution was not just technical delivery, but also direct collaboration with the client.
-	•	I was involved in discussions, clarifications, and follow-ups related to technical setup, environment issues, and implementation progress.
-	•	This helped me build stronger ownership, communication, and stakeholder-handling capability.
-
-6. Broader Prudential impact
-	•	In Prudential, my contribution was not limited to one task area.
-	•	I worked across multiple tracks such as setup, troubleshooting, deployment support, observability, authentication, and documentation/readiness discussions.
-	•	I consistently supported delivery by picking up responsibilities, learning quickly where needed, and closing tasks with ownership.
-
-7. GenAI bootcamp
-	•	Alongside project work, I also participated in the GenAI bootcamp.
-	•	I successfully completed the program, including the required questions, exercises, and project work.
-	•	I received an expert-level review/result in the assessment, which reflects my effort in building capability in GenAI alongside delivery work.
-
-8. Certifications and continuous learning
-	•	I completed the Terraform Associate certification last year.
-	•	And recently, I also cleared the AWS AI Practitioner certification.
-	•	These certifications reflect my continuous investment in upskilling and staying aligned with cloud and AI-related capabilities relevant to current and future work.
-
-9. IAC capability contribution
-	•	Apart from project delivery, I also contributed to the IAC capability.
-	•	As part of this, I supported capability-building activities such as creating blogs and contributing to use cases/work items.
-	•	This shows my involvement beyond project-only work and my interest in contributing to wider team capability and knowledge sharing.
-
-10. Key strengths demonstrated during this period
-	•	End-to-end ownership of technical tasks
-	•	Ability to learn new areas quickly and implement them independently
-	•	Strong collaboration with team and client stakeholders
-	•	Hands-on contribution across development, deployment, observability, and authentication
-	•	Continuous learning through bootcamps, certifications, and capability initiatives
-
-11. Short closing statement for manager
-	•	Overall, I believe this cycle I have shown strong ownership, flexibility, and willingness to take on challenging areas.
-	•	I have contributed both in delivery and in learning initiatives, and I have also taken independent ownership of important items like Dynatrace setup and Entra ID setup.
-	•	Going forward, I want to continue building on this by taking on more responsibility and contributing at an even larger level.
-
-Here is a shorter 1-minute version in case your manager asks for a crisp summary:
-	•	This cycle, I contributed across project delivery, client coordination, technical setup, and upskilling.
-	•	I started with an internal Python-based project where I worked on microservices, testing, and deployment.
-	•	In the Prudential project, I worked on multiple technical areas and took end-to-end ownership of important items.
-	•	Two major highlights were setting up Dynatrace from scratch and driving Entra ID setup from scratch as part of replacing the earlier Ping ID-based approach.
-	•	I also collaborated directly with the client for clarifications and progress on technical tasks.
-	•	Along with project work, I completed the GenAI bootcamp successfully with an expert-level result.
-	•	I also completed the Terraform Associate certification earlier and recently cleared the AWS AI Practitioner certification.
-	•	In addition, I contributed to the IAC capability through blogs and use case support.
-	•	Overall, I feel I have demonstrated ownership, learning agility, and consistent contribution across both delivery and capability building.
+Delivery & Process — B6H
+	•	During this cycle, I handled responsibilities beyond routine execution and took strong ownership across key DevOps and migration workstreams in both Migration to Cloud and Prudential Cloud Migration of Apps.
+	•	In Prudential Cloud Migration of Apps, I contributed across the overall delivery lifecycle, including requirement understanding, implementation planning, environment readiness, migration execution, observability enablement, authentication-related changes, and post-migration stabilization.
+	•	One of my major contributions was taking end-to-end ownership of Dynatrace setup from scratch for multiple applications. This included understanding the requirement, identifying the application and environment-level changes needed, implementing the setup, coordinating with the client and internal teams, and driving the work to successful delivery.
+	•	I also took ownership in the Entra ID-related implementation as part of the transition from Ping ID. This involved understanding the existing setup, supporting the required changes, coordinating with stakeholders, and ensuring the implementation progressed smoothly.
+	•	I played an active role in migration activities across multiple applications and contributed not only in execution but also in helping drive the technical flow of work across discovery, implementation, migration, and stabilization phases.
+	•	As part of DevOps ownership, I worked on Dockerization, CI/CD pipeline setup and improvement, deployment readiness, release-related activities, and troubleshooting, helping build a more stable and repeatable delivery process.
+	•	I also contributed to stronger delivery quality and security by supporting SonarQube integration and related quality checks in the pipeline, which improved code quality visibility and strengthened confidence in the client delivery process.
+	•	My Terraform knowledge and certification helped me contribute more confidently to infrastructure-related discussions and migration activities, especially in areas involving environment setup and provisioning understanding.
+	•	In Migration to Cloud, I worked on Python-based microservices, handled issue fixes, improved unit and integration test coverage, containerized services, and supported delivery of a deployment-ready application. This helped build my end-to-end understanding of development, testing, and deployment.
+	•	I was actively involved in troubleshooting issues, resolving blockers, supporting documentation, and ensuring that implementation knowledge was captured properly for smoother onboarding and future support.
+	•	I worked directly with the client on a regular basis, discussed progress and improvements, clarified dependencies, and ensured the work being delivered matched expectations. This contributed to successful delivery and positive client appreciation for the team.
+	•	Since I was one of the DevOps engineers working across these applications, I also contributed by guiding another team member on migration-related execution and sharing implementation context to support smoother overall delivery.
+	•	Looking at the overall cycle, I believe I demonstrated stronger delivery ownership through a combination of technical execution, migration support, observability and authentication implementation, CI/CD and deployment contribution, documentation, collaboration, and delivery discipline.
