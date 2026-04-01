@@ -1,25 +1,11 @@
-	•	Worked closely with internal teams and client stakeholders across Migration to Cloud and Prudential Cloud Migration of Apps, which helped me strengthen both business understanding and communication.
-	•	In Prudential Cloud Migration of Apps, regularly connected with the client to understand requirements, clarify dependencies, discuss progress, and keep delivery aligned with expectations.
-	•	Communicated implementation updates, blockers, and next steps clearly and on time, which helped maintain smooth coordination across teams.
-	•	Built a good understanding of client goals around cloud migration, application readiness, observability, authentication changes, and delivery timelines.
-	•	Maintained a professional and collaborative approach in both written and verbal communication.
-	•	Supported documentation and knowledge sharing so that setup, migration, and implementation details were clearly captured for future use.
-	•	Also contributed to capability discussions by helping review and organize cross-cloud compliance and Checkov mapping work in a clearer and more stakeholder-friendly format.
-	•	Focused on building trust through responsiveness, clarity in communication, and consistent follow-through on action items.
-	•	Team’s client appreciation also reflected the strength of our communication and delivery approach.
-
-⸻
-
-B6H – Business & Communication
-
-Copy-paste this:
-	•	Took an active role in business and client communication across Migration to Cloud and Prudential Cloud Migration of Apps, contributing beyond task-level updates to stronger stakeholder alignment and delivery confidence.
-	•	Worked directly with client stakeholders to understand expectations, discuss progress, clarify dependencies, and keep technical delivery aligned with business needs and timelines.
-	•	Communicated progress, blockers, risks, and required actions in a clear and timely way, which supported smoother coordination and faster resolution of issues.
-	•	Developed a stronger understanding of the broader business context through involvement in migration, observability, authentication, deployment, and post-migration workstreams.
-	•	Maintained professionalism and ethics in all communication, and represented the team in a dependable and solution-focused manner.
-	•	Supported documentation, knowledge capture, and handover readiness so that delivered work could be understood and continued easily by others.
-	•	Also contributed to capability-level communication by helping organize and present cross-cloud compliance and Checkov gap analysis work in a way that was easier for stakeholders and leadership to review.
-	•	Built trust with both client and internal stakeholders by staying responsive, following through on commitments, and handling communication constructively.
-	•	Positive client appreciation for the migration work reflects the quality of communication, coordination, and delivery maintained throughout the engagement.
-	•	Also contributed to broader capability-building and knowledge-sharing efforts, which strengthened communication maturity and business understanding.
+Over this cycle, I worked across two main projects, Migration to Cloud and Prudential Cloud Migration of Apps, along with capability-building and certification work.
+	•	In Migration to Cloud, I worked on Python-based microservices, fixed issues, improved unit and integration test coverage, containerized the services, and helped make the application deployment-ready.
+	•	In Prudential Cloud Migration of Apps, I worked across migration, DevOps, deployment support, troubleshooting, Dockerization, CI/CD activities, and overall application readiness for cloud migration.
+	•	One of my major contributions was taking ownership of Dynatrace setup from scratch for multiple applications. I worked on understanding the setup, implementing the required changes, coordinating with the client, and driving it through to completion.
+	•	I also worked on the Entra ID setup as part of the transition from Ping ID, and supported the implementation and coordination needed for that change.
+	•	I was regularly involved with the client for discussions, progress updates, clarifications, and follow-ups, which helped me build strong ownership and communication on the project.
+	•	Across the migration work, I also supported team members with technical understanding, migration flow, troubleshooting, and implementation context wherever needed.
+	•	Apart from project work, I contributed to IAC capability activities, including the cloud compliance and Checkov gap analysis across AWS, Azure, and GCP. I helped organize and streamline the analysis into a stakeholder-ready format and supported presenting the findings clearly.
+	•	I also contributed to documentation and knowledge capture so that the work delivered could be understood easily by others during onboarding or future support.
+	•	From a learning and upskilling perspective, I completed the GenAI bootcamp, and I also completed the Terraform Associate certification and the AWS AI Practitioner certification during this period.
+	•	Overall, I feel this cycle I have contributed strongly in delivery, taken ownership of important workstreams, improved my client handling, supported team delivery, and also invested in capability-building and certifications.
