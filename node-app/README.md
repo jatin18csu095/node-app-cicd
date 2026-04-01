@@ -1,11 +1,23 @@
-Over this cycle, I worked across two main projects, Migration to Cloud and Prudential Cloud Migration of Apps, along with capability-building and certification work.
-	•	In Migration to Cloud, I worked on Python-based microservices, fixed issues, improved unit and integration test coverage, containerized the services, and helped make the application deployment-ready.
-	•	In Prudential Cloud Migration of Apps, I worked across migration, DevOps, deployment support, troubleshooting, Dockerization, CI/CD activities, and overall application readiness for cloud migration.
-	•	One of my major contributions was taking ownership of Dynatrace setup from scratch for multiple applications. I worked on understanding the setup, implementing the required changes, coordinating with the client, and driving it through to completion.
-	•	I also worked on the Entra ID setup as part of the transition from Ping ID, and supported the implementation and coordination needed for that change.
-	•	I was regularly involved with the client for discussions, progress updates, clarifications, and follow-ups, which helped me build strong ownership and communication on the project.
-	•	Across the migration work, I also supported team members with technical understanding, migration flow, troubleshooting, and implementation context wherever needed.
-	•	Apart from project work, I contributed to IAC capability activities, including the cloud compliance and Checkov gap analysis across AWS, Azure, and GCP. I helped organize and streamline the analysis into a stakeholder-ready format and supported presenting the findings clearly.
-	•	I also contributed to documentation and knowledge capture so that the work delivered could be understood easily by others during onboarding or future support.
-	•	From a learning and upskilling perspective, I completed the GenAI bootcamp, and I also completed the Terraform Associate certification and the AWS AI Practitioner certification during this period.
-	•	Overall, I feel this cycle I have contributed strongly in delivery, taken ownership of important workstreams, improved my client handling, supported team delivery, and also invested in capability-building and certifications.
+🔹 B6L – Leadership & Org Contribution
+	•	Took ownership of assigned work across Migration to Cloud and Prudential Cloud Migration of Apps, and consistently followed through with regular progress updates.
+	•	Supported team delivery by helping team members with implementation understanding, migration activities, and troubleshooting wherever needed.
+	•	Shared knowledge and context with the team so that work could move faster and dependencies were reduced.
+	•	Contributed to documentation and knowledge capture, which helped in smoother onboarding and support continuity.
+	•	Participated in capability work by contributing to cross-cloud compliance and Checkov analysis across AWS, Azure, and GCP.
+	•	Supported organizing and refining the analysis so that the output was clearer and easier for stakeholders to understand.
+	•	Participated in internal organizational activities such as team engagement initiatives (e.g., badminton event).
+	•	Overall, contributed as a reliable team member who took ownership, supported others, and participated in capability and org-level efforts.
+
+⸻
+
+🔹 B6H – Leadership & Org Contribution
+	•	Demonstrated leadership through strong ownership across Migration to Cloud and Prudential Cloud Migration of Apps, contributing beyond individual tasks to overall team delivery.
+	•	Led by example by taking end-to-end ownership of key workstreams such as Dynatrace setup, migration activities, and implementation coordination.
+	•	Supported and guided team members on migration approach, implementation steps, troubleshooting, and delivery priorities, helping improve team efficiency.
+	•	Helped structure technical work and shared knowledge proactively so that execution was not dependent on a single individual.
+	•	Took end-to-end ownership of the cross-cloud compliance and Checkov gap analysis across AWS, Azure, and GCP as part of IAC capability work.
+	•	Led the consolidation and refinement of compliance mapping into a structured, stakeholder-ready format highlighting key gaps and coverage areas.
+	•	Guided team members in interpreting compliance mappings and preparing the analysis in a way suitable for leadership review.
+	•	Presented the final compliance findings to stakeholders and senior leadership, demonstrating ownership and confidence in communication.
+	•	Contributed to organization-level activities beyond project work, including participation and support in internal engagement initiatives.
+	•	Overall, demonstrated leadership through ownership, team support, capability contribution, knowledge sharing, and proactive involvement in organizational activities.
