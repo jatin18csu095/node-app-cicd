@@ -1,5 +1,17 @@
-•	Worked across Migration to Cloud and Prudential Cloud Migration of Apps, contributing to migration, DevOps, CI/CD, and observability activities.
-	•	Took ownership of Dynatrace setup and supported Entra ID implementation while collaborating closely with client and team.
-	•	Contributed to IAC capability work through cross-cloud compliance and Checkov analysis.
-	•	Completed Terraform, AWS AI Practitioner, and GenAI bootcamp as part of continuous upskilling.
-	•	Overall, demonstrated strong ownership, delivery commitment, and learning mindset.
+Delivery & Process
+	•	Consistently delivers work on time with good quality and handles tasks with strong ownership and minimal follow-ups.
+
+⸻
+
+🔹 Business & Communication
+	•	Communicates clearly and keeps everyone aligned, making coordination smooth and easy across the team.
+
+⸻
+
+🔹 Leadership & Org Contribution
+	•	Always supportive and approachable, helps the team whenever needed and contributes positively to the overall team environment.
+
+⸻
+
+🔹 Role Expertise
+	•	Strong in core technical areas and continuously improves by picking up new tools and applying them effectively.
