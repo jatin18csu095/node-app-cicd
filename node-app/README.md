@@ -1,12 +1,8 @@
-•	Discussed my current progress, contributions in Prudential Cloud Migration of Apps, and areas where I have taken ownership such as Dynatrace setup and DevOps activities.
-	•	Talked about improving collaboration within the team and taking more proactive ownership in tasks and discussions.
-	•	Also discussed focus areas for skill development, including certifications and strengthening core DevOps and cloud knowledge.
-	•	Received guidance on how to align better with expectations and grow towards the next level.
-
-⸻
-
-🔹 Action Items (Copy-Paste)
-	•	Improve collaboration and communication within the team and be more proactive in discussions.
-	•	Take end-to-end ownership of tasks and drive them independently.
-	•	Continue focusing on upskilling through certifications and hands-on learning.
-	•	Apply learnings in ongoing work and contribute more actively to team delivery.
+Hey bro, you can add something like this:
+	•	Worked on Migration to Cloud and Prudential Cloud Migration of Apps, contributing across DevOps, CI/CD, Dockerization, and deployment activities.
+	•	Took ownership of Dynatrace setup from scratch for multiple applications and supported observability implementation.
+	•	Contributed to Entra ID setup and supported authentication-related changes during migration.
+	•	Actively worked with client and team to resolve issues, improve delivery, and ensure smooth migration.
+	•	Contributed to IAC capability work, including cross-cloud compliance and Checkov gap analysis across AWS, Azure, and GCP.
+	•	Demonstrated strong ownership, reliability, and ability to learn and apply new technologies quickly.
+	•	Completed Terraform Associate, AWS AI Practitioner, and GenAI bootcamp as part of continuous upskilling.
